@@ -51,6 +51,7 @@ function cacheElements() {
     novelLatest: document.querySelector("#novelLatest"),
     novelPosition: document.querySelector("#novelPosition"),
     novelMemo: document.querySelector("#novelMemo"),
+    formError: document.querySelector("#formError"),
     librarySearch: document.querySelector("#librarySearch"),
     siteFilter: document.querySelector("#siteFilter"),
     novelList: document.querySelector("#novelList"),
@@ -107,14 +108,30 @@ function bindEvents() {
 function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    state.novels = saved ? JSON.parse(saved) : getInitialNovels();
+    state.novels = saved ? normalizeStoredData(JSON.parse(saved)) : getInitialNovels();
   } catch {
     state.novels = getInitialNovels();
   }
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.novels));
+  const payload = {
+    version: 1,
+    novels: state.novels,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function normalizeStoredData(savedData) {
+  const novels = Array.isArray(savedData) ? savedData : savedData?.novels;
+  if (!Array.isArray(novels)) return getInitialNovels();
+  return dedupeNovels(novels.map(sanitizeNovel));
+}
+
+function parseImportedNovels(importedData) {
+  const novels = Array.isArray(importedData) ? importedData : importedData?.novels;
+  if (!Array.isArray(novels)) throw new Error("Invalid data");
+  return dedupeNovels(novels.map(sanitizeNovel));
 }
 
 function getInitialNovels() {
@@ -176,6 +193,7 @@ function switchView(viewName) {
 
 function showForm(novel = null) {
   elements.novelForm.classList.remove("is-hidden");
+  setFormError("");
   elements.novelId.value = novel?.id || "";
   elements.novelTitle.value = novel?.title || "";
   elements.novelSite.value = novel?.site || "小説家になろう";
@@ -189,6 +207,7 @@ function showForm(novel = null) {
 function hideForm() {
   elements.novelForm.reset();
   elements.novelId.value = "";
+  setFormError("");
   elements.novelForm.classList.add("is-hidden");
 }
 
@@ -204,6 +223,12 @@ function saveNovelFromForm(event) {
   };
 
   const id = elements.novelId.value;
+  const duplicate = findDuplicateNovel(formValue, id);
+  if (duplicate) {
+    setFormError(`「${duplicate.title}」はすでに登録されています。`);
+    return;
+  }
+
   if (id) {
     state.novels = state.novels.map((novel) => {
       if (novel.id !== id) return novel;
@@ -217,6 +242,55 @@ function saveNovelFromForm(event) {
   saveState();
   hideForm();
   render();
+}
+
+function findDuplicateNovel(target, ignoreId = "") {
+  const targetKey = getNovelKey(target);
+  return state.novels.find((novel) => novel.id !== ignoreId && getNovelKey(novel) === targetKey);
+}
+
+function getNovelKey(novel) {
+  const normalizedUrl = normalizeUrl(novel.url);
+  if (normalizedUrl) return `url:${normalizedUrl}`;
+  return `title:${normalizeText(novel.site)}:${normalizeText(novel.title)}`;
+}
+
+function normalizeUrl(url) {
+  return String(url || "").trim().replace(/\/+$/, "").toLowerCase();
+}
+
+function normalizeText(text) {
+  return String(text || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function sanitizeNovel(novel) {
+  return {
+    id: novel.id || createId(),
+    title: String(novel.title || "").trim(),
+    site: novel.site || "その他",
+    url: String(novel.url || "").trim(),
+    latest: String(novel.latest || "").trim(),
+    position: String(novel.position || "").trim(),
+    memo: String(novel.memo || "").trim(),
+    unread: Boolean(novel.unread),
+    updatedAt: novel.updatedAt || new Date().toISOString(),
+  };
+}
+
+function dedupeNovels(novels) {
+  const seen = new Set();
+  return novels.filter((novel) => {
+    if (!novel.title) return false;
+    const key = getNovelKey(novel);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function setFormError(message) {
+  elements.formError.textContent = message;
+  elements.formError.classList.toggle("is-hidden", !message);
 }
 
 function getFilteredNovels() {
@@ -336,7 +410,7 @@ function renderRanking() {
 }
 
 function exportData() {
-  elements.exportBox.value = JSON.stringify({ novels: state.novels }, null, 2);
+  elements.exportBox.value = JSON.stringify({ version: 1, novels: state.novels }, null, 2);
   elements.exportBox.select();
 }
 
@@ -348,8 +422,8 @@ function importData(event) {
   reader.addEventListener("load", () => {
     try {
       const parsed = JSON.parse(reader.result);
-      if (!Array.isArray(parsed.novels)) throw new Error("Invalid data");
-      state.novels = parsed.novels;
+      const imported = parseImportedNovels(parsed);
+      state.novels = dedupeNovels([...state.novels, ...imported]);
       saveState();
       render();
     } catch {
