@@ -49,6 +49,7 @@
           </div>
           <button class="ghost-button" id="openAddForm" type="button">手入力</button>
         </div>
+        <p class="check-status is-hidden" id="bookmarkletStatus" aria-live="polite"></p>
 
         <section class="catalog-search" aria-labelledby="catalogSearchTitle">
           <div class="section-head compact-head">
@@ -195,6 +196,12 @@
           </label>
           <button class="danger-button" id="clearData" type="button">全データ削除</button>
         </div>
+        <section class="bookmarklet-box" aria-labelledby="bookmarkletTitle">
+          <h3 id="bookmarkletTitle">読了登録ブックマークレット</h3>
+          <p>対応サイトの話ページで実行すると、このアプリに戻って読了位置だけを保存します。本文は取得・保存しません。</p>
+          <a class="primary-button bookmarklet-link" id="bookmarkletLink" href="#">読了登録</a>
+          <p class="muted">このリンクをブックマークバーへ登録して使います。</p>
+        </section>
         <textarea id="exportBox" class="export-box" rows="8" readonly placeholder="書き出したJSONがここに表示されます"></textarea>
       </section>
     </main>

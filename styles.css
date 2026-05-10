@@ -700,6 +700,34 @@ textarea {
   margin-bottom: 14px;
 }
 
+.bookmarklet-box {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.bookmarklet-box h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.bookmarklet-box p {
+  margin: 0;
+}
+
+.bookmarklet-link {
+  display: inline-grid;
+  place-items: center;
+  width: max-content;
+  min-height: 42px;
+  text-decoration: none;
+}
+
 .file-button {
   display: grid;
   place-items: center;

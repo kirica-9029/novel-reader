@@ -57,6 +57,8 @@ const state = {
   updateCheckMessage: "",
   updateCheckError: "",
   readerNovelId: "",
+  bookmarkletMessage: "",
+  bookmarkletError: "",
 };
 
 const elements = {};
@@ -68,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadState();
   applyTheme(loadTheme());
   bindEvents();
+  processBookmarkletParams();
   initializeRoute();
   render();
 });
@@ -102,6 +105,7 @@ function cacheElements() {
     siteFilter: document.querySelector("#siteFilter"),
     novelList: document.querySelector("#novelList"),
     libraryEmpty: document.querySelector("#libraryEmpty"),
+    bookmarkletStatus: document.querySelector("#bookmarkletStatus"),
     updatesList: document.querySelector("#updatesList"),
     readerPanel: document.querySelector("#readerPanel"),
     updatesEmpty: document.querySelector("#updatesEmpty"),
@@ -119,6 +123,7 @@ function cacheElements() {
     importData: document.querySelector("#importData"),
     clearData: document.querySelector("#clearData"),
     exportBox: document.querySelector("#exportBox"),
+    bookmarkletLink: document.querySelector("#bookmarkletLink"),
   });
 }
 
@@ -128,6 +133,7 @@ function populateStaticOptions() {
   populateSelect(elements.novelSite, NOVEL_SITE_OPTIONS);
   populateSelect(elements.siteFilter, NOVEL_SITE_OPTIONS, { allLabel: "すべて" });
   populateSelect(elements.rankingSite, SITE_OPTIONS, { allLabel: "全サイト" });
+  elements.bookmarkletLink.href = createBookmarkletHref();
 }
 
 function populateCatalogSiteTabs() {
@@ -278,7 +284,8 @@ function getInitialNovels() {
 function createNovel(values) {
   const latestChapter = toChapterNumber(values.generalAllNo ?? values.latestChapter ?? values.latest);
   const readChapter = toChapterNumber(values.lastReadEpisode ?? values.readChapter ?? values.position);
-  const ncode = normalizeNcode(values.ncode) || extractNarouNcode(values.url);
+  const sourceInfo = extractSourceInfoFromUrl(values.url);
+  const ncode = normalizeNcode(values.ncode || sourceInfo.workId) || extractNarouNcode(values.url);
   const site = ncode ? DEFAULT_SITE : values.site;
   const generalLastup = values.generalLastup || values.lastup || values.updatedAt || "";
   const updatedAt = generalLastup ? toIsoDateOrNow(generalLastup) : values.updatedAt || new Date().toISOString();
@@ -288,12 +295,17 @@ function createNovel(values) {
     title: values.title,
     site,
     ncode,
+    workId: values.workId || sourceInfo.workId || ncode,
+    novelId: values.novelId || sourceInfo.novelId || "",
+    episodeId: values.episodeId || sourceInfo.episodeId || "",
     author: values.author || values.writer || "",
     story: values.story || "",
     url: values.url || "",
     generalLastup,
     generalAllNo: latestChapter,
     lastReadEpisode: readChapter,
+    lastReadEpisodeId: values.lastReadEpisodeId || "",
+    sourceUrl: values.sourceUrl || "",
     lastCheckedAt: values.lastCheckedAt || "",
     latestChapter,
     readChapter,
@@ -398,13 +410,17 @@ function saveNovelFromForm(event) {
 function getNovelFormValue() {
   const url = elements.novelUrl.value.trim();
   const detectedSite = detectSiteFromUrl(url);
+  const sourceInfo = extractSourceInfoFromUrl(url);
   const latestChapter = toChapterNumber(elements.novelLatest.value);
   const readChapter = toChapterNumber(elements.novelPosition.value);
   return {
     title: elements.novelTitle.value.trim(),
     site: detectedSite || elements.novelSite.value,
     url,
-    ncode: extractNarouNcode(url),
+    ncode: sourceInfo.site === "narou" ? sourceInfo.workId : extractNarouNcode(url),
+    workId: sourceInfo.workId,
+    novelId: sourceInfo.novelId,
+    episodeId: sourceInfo.episodeId,
     generalAllNo: latestChapter,
     latestChapter,
     lastReadEpisode: readChapter,
@@ -464,6 +480,39 @@ function extractNarouNcode(url) {
   return match ? match[1].toUpperCase() : "";
 }
 
+function extractSourceInfoFromUrl(url) {
+  const target = String(url || "").trim();
+  const narou = target.match(/ncode\.syosetu\.com\/(n\d{4}[a-z]+)\/(?:(\d+)\/?)?/i);
+  if (narou) {
+    return {
+      site: "narou",
+      workId: normalizeNcode(narou[1]),
+      episodeNo: narou[2] ? Number(narou[2]) : 0,
+    };
+  }
+
+  const kakuyomu = target.match(/kakuyomu\.jp\/works\/([^/?#]+)(?:\/episodes\/([^/?#]+))?/i);
+  if (kakuyomu) {
+    return {
+      site: "kakuyomu",
+      workId: kakuyomu[1],
+      episodeId: kakuyomu[2] || "",
+    };
+  }
+
+  const hameln = target.match(/syosetu\.org\/novel\/(\d+)\/(?:(\d+)(?:\.html|\/)?)?/i);
+  if (hameln) {
+    return {
+      site: "hameln",
+      workId: hameln[1],
+      novelId: hameln[1],
+      episodeNo: hameln[2] ? Number(hameln[2]) : 0,
+    };
+  }
+
+  return {};
+}
+
 function detectSiteFromUrl(url) {
   const target = String(url || "").trim();
   if (!target) return "";
@@ -477,9 +526,10 @@ function normalizeText(text) {
 
 function sanitizeNovel(novel) {
   // Older exports used Japanese strings like "第12話"; normalize both shapes.
+  const sourceInfo = extractSourceInfoFromUrl(novel.url);
   const latestChapter = toChapterNumber(novel.generalAllNo ?? novel.latestChapter ?? novel.latest);
   const readChapter = toChapterNumber(novel.lastReadEpisode ?? novel.readChapter ?? novel.position);
-  const ncode = normalizeNcode(novel.ncode) || extractNarouNcode(novel.url);
+  const ncode = normalizeNcode(novel.ncode || (sourceInfo.site === "narou" ? sourceInfo.workId : "")) || extractNarouNcode(novel.url);
   const generalLastup = novel.generalLastup || novel.lastup || novel.updatedAt || "";
   const site = ncode ? DEFAULT_SITE : novel.site || OTHER_SITE;
 
@@ -488,12 +538,17 @@ function sanitizeNovel(novel) {
     title: String(novel.title || "").trim(),
     site,
     ncode,
+    workId: novel.workId || sourceInfo.workId || ncode,
+    novelId: novel.novelId || sourceInfo.novelId || "",
+    episodeId: novel.episodeId || sourceInfo.episodeId || "",
     author: String(novel.author || novel.writer || "").trim(),
     story: String(novel.story || "").trim(),
     url: String(novel.url || "").trim(),
     generalLastup,
     generalAllNo: latestChapter,
     lastReadEpisode: readChapter,
+    lastReadEpisodeId: novel.lastReadEpisodeId || "",
+    sourceUrl: novel.sourceUrl || "",
     lastCheckedAt: novel.lastCheckedAt || "",
     latestChapter,
     readChapter,
@@ -568,6 +623,101 @@ function renderCatalogResults() {
   bindCatalogActions();
 }
 
+function processBookmarkletParams() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has("site") || !params.has("sourceUrl")) return;
+
+  const payload = {
+    site: params.get("site") || "",
+    workId: params.get("workId") || "",
+    ncode: params.get("ncode") || "",
+    novelId: params.get("novelId") || "",
+    episodeId: params.get("episodeId") || "",
+    episodeNo: toChapterNumber(params.get("episodeNo")),
+    sourceUrl: params.get("sourceUrl") || "",
+  };
+
+  const result = applyBookmarkletRead(payload);
+  state.bookmarkletMessage = result.ok ? result.message : "";
+  state.bookmarkletError = result.ok ? "" : result.message;
+  saveState();
+  cleanBookmarkletQuery();
+}
+
+function applyBookmarkletRead(payload) {
+  if (!isSupportedBookmarkletPayload(payload)) {
+    return { ok: false, message: "このページは読了登録に対応していません。" };
+  }
+
+  const novel = findNovelByBookmarkletPayload(payload);
+  if (!novel) {
+    return { ok: false, message: "本棚に該当作品が見つかりません。先に作品URLを登録してください。" };
+  }
+
+  updateNovelReadFromBookmarklet(novel, payload);
+  return { ok: true, message: `「${novel.title}」の読了位置を更新しました。` };
+}
+
+function isSupportedBookmarkletPayload(payload) {
+  if (payload.site === "narou") return Boolean(normalizeNcode(payload.workId || payload.ncode) && payload.episodeNo);
+  if (payload.site === "kakuyomu") return Boolean(payload.workId && payload.episodeId);
+  if (payload.site === "hameln") return Boolean((payload.novelId || payload.workId) && payload.episodeNo);
+  return false;
+}
+
+function findNovelByBookmarkletPayload(payload) {
+  if (payload.site === "narou") {
+    const ncode = normalizeNcode(payload.workId || payload.ncode);
+    return state.novels.find((novel) => normalizeNcode(novel.ncode || novel.workId) === ncode);
+  }
+  if (payload.site === "kakuyomu") {
+    return state.novels.find((novel) => novel.site === "カクヨム" && (novel.workId === payload.workId || normalizeUrl(novel.url).includes(`/works/${payload.workId}`)));
+  }
+  if (payload.site === "hameln") {
+    const novelId = payload.novelId || payload.workId;
+    return state.novels.find((novel) => novel.site === "ハーメルン" && (novel.novelId === novelId || novel.workId === novelId || normalizeUrl(novel.url).includes(`/novel/${novelId}`)));
+  }
+  return null;
+}
+
+function updateNovelReadFromBookmarklet(targetNovel, payload) {
+  const now = new Date().toISOString();
+  state.novels = state.novels.map((novel) => {
+    if (novel.id !== targetNovel.id) return novel;
+
+    if (payload.site === "kakuyomu") {
+      return {
+        ...novel,
+        workId: payload.workId,
+        lastReadEpisodeId: payload.episodeId,
+        episodeId: payload.episodeId,
+        sourceUrl: payload.sourceUrl,
+        lastViewedAt: now,
+      };
+    }
+
+    const readChapter = Math.max(toChapterNumber(novel.lastReadEpisode ?? novel.readChapter), payload.episodeNo);
+    return {
+      ...novel,
+      workId: payload.workId || novel.workId,
+      novelId: payload.novelId || novel.novelId,
+      lastReadEpisode: readChapter,
+      readChapter,
+      position: formatChapter(readChapter),
+      lastOpenedChapter: payload.episodeNo,
+      sourceUrl: payload.sourceUrl,
+      lastViewedAt: now,
+      unread: (novel.generalAllNo || novel.latestChapter || 0) > readChapter,
+      lastCheckDiff: (novel.generalAllNo || novel.latestChapter || 0) > readChapter ? novel.lastCheckDiff : 0,
+    };
+  });
+}
+
+function cleanBookmarkletQuery() {
+  const cleanUrl = `${location.pathname}${location.hash || ""}`;
+  history.replaceState(null, "", cleanUrl);
+}
+
 function renderCatalogMode() {
   const isApiMode = isApiSearchSite(state.catalogSite);
   elements.catalogSearchLabel.textContent = isApiMode ? `${state.catalogSite} API検索` : `${state.catalogSite} 外部検索`;
@@ -575,6 +725,45 @@ function renderCatalogMode() {
     ? `${state.catalogSite}は公式APIから作品情報を取得し、そのまま本棚へ追加できます。`
     : `${state.catalogSite}は現時点ではAPI未対応のため、検索ページを開いて作品URLを貼り付け登録します。`;
   elements.catalogExternalSearch.classList.toggle("is-hidden", isApiMode);
+}
+
+function createBookmarkletHref() {
+  const appUrl = new URL(location.pathname.split("/").pop() ? "./" : ".", location.href);
+  const targetUrl = new URL("index.html", appUrl);
+  targetUrl.hash = "";
+  targetUrl.search = "";
+  const script = `
+    (() => {
+      const sourceUrl = location.href;
+      const patterns = [
+        {
+          site: "narou",
+          match: sourceUrl.match(/ncode\\.syosetu\\.com\\/(n\\d{4}[a-z]+)\\/(\\d+)\\/?/i),
+          build: (m) => ({ site: "narou", workId: m[1].toUpperCase(), ncode: m[1].toUpperCase(), episodeNo: m[2] })
+        },
+        {
+          site: "kakuyomu",
+          match: sourceUrl.match(/kakuyomu\\.jp\\/works\\/([^/?#]+)\\/episodes\\/([^/?#]+)/i),
+          build: (m) => ({ site: "kakuyomu", workId: m[1], episodeId: m[2] })
+        },
+        {
+          site: "hameln",
+          match: sourceUrl.match(/syosetu\\.org\\/novel\\/(\\d+)\\/(\\d+)(?:\\.html|\\/)?/i),
+          build: (m) => ({ site: "hameln", workId: m[1], novelId: m[1], episodeNo: m[2] })
+        }
+      ];
+      const matched = patterns.find((item) => item.match);
+      if (!matched) {
+        location.href = ${JSON.stringify(targetUrl.href)} + "?site=unsupported&sourceUrl=" + encodeURIComponent(sourceUrl);
+        return;
+      }
+      const payload = matched.build(matched.match);
+      payload.sourceUrl = sourceUrl;
+      const params = new URLSearchParams(payload);
+      location.href = ${JSON.stringify(targetUrl.href)} + "?" + params.toString();
+    })();
+  `;
+  return `javascript:${encodeURIComponent(script.replace(/\s+/g, " "))}`;
 }
 
 function queueCatalogSearch(delay = 350) {
@@ -899,9 +1088,17 @@ function showCatalogMessage(message) {
 
 function renderLibrary() {
   const novels = getFilteredNovels();
+  renderBookmarkletStatus();
   elements.libraryEmpty.classList.toggle("is-hidden", novels.length > 0);
   elements.novelList.innerHTML = novels.map(renderNovelCard).join("");
   bindCardActions(elements.novelList);
+}
+
+function renderBookmarkletStatus() {
+  const message = state.bookmarkletError || state.bookmarkletMessage;
+  elements.bookmarkletStatus.textContent = message;
+  elements.bookmarkletStatus.classList.toggle("is-hidden", !message);
+  elements.bookmarkletStatus.classList.toggle("is-error", Boolean(state.bookmarkletError));
 }
 
 function renderUpdates() {
@@ -1104,6 +1301,7 @@ function renderNovelCard(novel) {
             ${novel.lastCheckDiff ? `<span class="badge unread">差分 +${novel.lastCheckDiff}話</span>` : ""}
             ${!novel.ncode && novel.lastReadEpisode ? `<span class="badge">読了 ${novel.lastReadEpisode}話</span>` : ""}
             ${novel.ncode ? `<span class="badge">${escapeHtml(novel.ncode)}</span>` : ""}
+            ${novel.lastReadEpisodeId ? '<span class="badge">読了ID保存済み</span>' : ""}
           </div>
         </div>
       </div>
@@ -1255,9 +1453,10 @@ function getProgressText(novel, unreadCount) {
 }
 
 function getViewedText(novel) {
-  if (!novel.lastViewedAt) return "";
+  if (!novel.lastViewedAt) return novel.lastReadEpisodeId ? `読了エピソードID：${novel.lastReadEpisodeId}` : "";
   const chapter = novel.lastOpenedChapter ? ` / 最後に開いた話：${novel.lastOpenedChapter}話` : "";
-  return `最終閲覧：${formatUpdatedAt(novel.lastViewedAt)}${chapter}`;
+  const episodeId = novel.lastReadEpisodeId ? ` / 読了エピソードID：${novel.lastReadEpisodeId}` : "";
+  return `最終閲覧：${formatUpdatedAt(novel.lastViewedAt)}${chapter}${episodeId}`;
 }
 
 function formatUpdatedAt(value) {
