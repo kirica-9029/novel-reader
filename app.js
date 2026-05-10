@@ -696,7 +696,8 @@ function render() {
 
 function renderCatalogResults() {
   renderCatalogMode();
-  elements.catalogEmpty.textContent = getCatalogStatusText();
+  elements.catalogEmpty.innerHTML = getCatalogStatusText();
+  elements.catalogEmpty.classList.toggle("is-loading", state.catalogLoading);
   elements.catalogEmpty.classList.toggle("is-hidden", shouldHideCatalogStatus());
   elements.catalogResults.innerHTML = state.catalogResults.map(renderCatalogCard).join("");
   elements.catalogSiteTabs.querySelectorAll("[data-catalog-site]").forEach((button) => {
@@ -1055,7 +1056,7 @@ function getCatalogStatusText() {
     return "API未対応サイトは検索ページを新しいタブで開き、作品URLを貼り付けて本棚へ登録します。";
   }
   if (!state.catalogSearch) return "キーワードを入力すると小説家になろう公式APIで検索します。";
-  if (state.catalogLoading) return "検索しています...";
+  if (state.catalogLoading) return '<span class="loading-spinner" aria-hidden="true"></span><span>検索しています...</span>';
   if (state.catalogError) return state.catalogError;
   if (state.catalogHasSearched && state.catalogResults.length === 0) return "条件に合う作品はありません。";
   return "";
