@@ -1,6 +1,10 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
 const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings"]);
+const DEFAULT_SITE = "小説家になろう";
+const OTHER_SITE = "その他";
+const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
+const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
 
 const periodLabels = {
   daily: "日間",
@@ -44,6 +48,7 @@ const elements = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
+  populateStaticOptions();
   loadState();
   applyTheme(loadTheme());
   bindEvents();
@@ -91,7 +96,32 @@ function cacheElements() {
   });
 }
 
+function populateStaticOptions() {
+  // Site choices are shared by multiple controls; keep the source of truth in JS.
+  populateSelect(elements.novelSite, NOVEL_SITE_OPTIONS);
+  populateSelect(elements.siteFilter, NOVEL_SITE_OPTIONS, { allLabel: "すべて" });
+  populateSelect(elements.rankingSite, SITE_OPTIONS, { allLabel: "全サイト" });
+}
+
+function populateSelect(select, options, config = {}) {
+  const allOption = config.allLabel ? [{ value: "all", label: config.allLabel }] : [];
+  const siteOptions = options.map((option) => ({ value: option, label: option }));
+  select.innerHTML = [...allOption, ...siteOptions].map(renderOption).join("");
+}
+
+function renderOption(option) {
+  return `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`;
+}
+
 function bindEvents() {
+  bindNavigationEvents();
+  bindLibraryEvents();
+  bindUpdateEvents();
+  bindRankingEvents();
+  bindSettingsEvents();
+}
+
+function bindNavigationEvents() {
   elements.themeToggle.addEventListener("click", toggleTheme);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
@@ -99,7 +129,9 @@ function bindEvents() {
   window.addEventListener("hashchange", () => {
     switchView(getViewFromLocation(), { replaceHash: false });
   });
+}
 
+function bindLibraryEvents() {
   elements.openAddForm.addEventListener("click", () => showForm());
   elements.cancelEdit.addEventListener("click", hideForm);
   elements.novelForm.addEventListener("submit", saveNovelFromForm);
@@ -111,7 +143,13 @@ function bindEvents() {
     state.siteFilter = event.target.value;
     renderLibrary();
   });
+}
+
+function bindUpdateEvents() {
   elements.markAllRead.addEventListener("click", markAllRead);
+}
+
+function bindRankingEvents() {
   elements.rankingControls.addEventListener("submit", (event) => {
     event.preventDefault();
   });
@@ -121,29 +159,25 @@ function bindEvents() {
       renderRanking();
     });
   });
-  elements.rankingSite.addEventListener("change", (event) => {
-    state.rankingSite = event.target.value;
-    renderRanking();
-  });
-  elements.rankingGenre.addEventListener("change", (event) => {
-    state.rankingGenre = event.target.value;
-    renderRanking();
-  });
-  elements.rankingSort.addEventListener("change", (event) => {
-    state.rankingSort = event.target.value;
-    renderRanking();
-  });
-  elements.rankingTag.addEventListener("input", (event) => {
-    state.rankingTag = event.target.value.trim();
-    renderRanking();
-  });
-  elements.rankingSearch.addEventListener("input", (event) => {
-    state.rankingSearch = event.target.value.trim();
-    renderRanking();
-  });
+  bindRankingControl(elements.rankingSite, "rankingSite", "change");
+  bindRankingControl(elements.rankingGenre, "rankingGenre", "change");
+  bindRankingControl(elements.rankingSort, "rankingSort", "change");
+  bindRankingControl(elements.rankingTag, "rankingTag", "input", { trim: true });
+  bindRankingControl(elements.rankingSearch, "rankingSearch", "input", { trim: true });
+}
+
+function bindSettingsEvents() {
   elements.exportData.addEventListener("click", exportData);
   elements.importData.addEventListener("change", importData);
   elements.clearData.addEventListener("click", clearData);
+}
+
+function bindRankingControl(element, stateKey, eventName, options = {}) {
+  element.addEventListener(eventName, (event) => {
+    const value = options.trim ? event.target.value.trim() : event.target.value;
+    state[stateKey] = value;
+    renderRanking();
+  });
 }
 
 function loadState() {
@@ -179,7 +213,7 @@ function getInitialNovels() {
   return [
     createNovel({
       title: "サンプル：辺境の読書家",
-      site: "小説家になろう",
+      site: DEFAULT_SITE,
       latestChapter: 18,
       readChapter: 15,
       memo: "週末に続きから読む",
@@ -189,15 +223,18 @@ function getInitialNovels() {
 }
 
 function createNovel(values) {
+  const latestChapter = toChapterNumber(values.latestChapter ?? values.latest);
+  const readChapter = toChapterNumber(values.readChapter ?? values.position);
+
   return {
     id: createId(),
     title: values.title,
     site: values.site,
     url: values.url || "",
-    latestChapter: toChapterNumber(values.latestChapter ?? values.latest),
-    readChapter: toChapterNumber(values.readChapter ?? values.position),
-    latest: formatChapter(toChapterNumber(values.latestChapter ?? values.latest)),
-    position: formatChapter(toChapterNumber(values.readChapter ?? values.position)),
+    latestChapter,
+    readChapter,
+    latest: formatChapter(latestChapter),
+    position: formatChapter(readChapter),
     memo: values.memo || "",
     unread: Boolean(values.unread),
     updatedAt: new Date().toISOString(),
@@ -230,6 +267,7 @@ function initializeRoute() {
 }
 
 function getViewFromLocation() {
+  // GitHub Pages serves one HTML file; hash/query routing keeps direct links usable.
   const hashView = location.hash.replace(/^#\/?/, "");
   const queryView = new URLSearchParams(location.search).get("view");
   if (VIEW_NAMES.has(hashView)) return hashView;
@@ -256,7 +294,7 @@ function showForm(novel = null) {
   setFormError("");
   elements.novelId.value = novel?.id || "";
   elements.novelTitle.value = novel?.title || "";
-  elements.novelSite.value = novel?.site || "小説家になろう";
+  setSelectValue(elements.novelSite, novel?.site || DEFAULT_SITE);
   elements.novelUrl.value = novel?.url || "";
   elements.novelLatest.value = novel?.latestChapter || "";
   elements.novelPosition.value = novel?.readChapter || "";
@@ -273,7 +311,23 @@ function hideForm() {
 
 function saveNovelFromForm(event) {
   event.preventDefault();
-  const formValue = {
+  const formValue = getNovelFormValue();
+  const id = elements.novelId.value;
+  const duplicate = findDuplicateNovel(formValue, id);
+
+  if (duplicate) {
+    setFormError(`「${duplicate.title}」はすでに登録されています。`);
+    return;
+  }
+
+  upsertNovel(formValue, id);
+  saveState();
+  hideForm();
+  render();
+}
+
+function getNovelFormValue() {
+  return {
     title: elements.novelTitle.value.trim(),
     site: elements.novelSite.value,
     url: elements.novelUrl.value.trim(),
@@ -281,34 +335,29 @@ function saveNovelFromForm(event) {
     readChapter: toChapterNumber(elements.novelPosition.value),
     memo: elements.novelMemo.value.trim(),
   };
+}
 
-  const id = elements.novelId.value;
-  const duplicate = findDuplicateNovel(formValue, id);
-  if (duplicate) {
-    setFormError(`「${duplicate.title}」はすでに登録されています。`);
+function upsertNovel(formValue, id) {
+  if (!id) {
+    state.novels.unshift(createNovel({ ...formValue, unread: hasUnreadChapters(formValue) }));
     return;
   }
 
-  if (id) {
-    state.novels = state.novels.map((novel) => {
-      if (novel.id !== id) return novel;
-      const unread = formValue.latestChapter > formValue.readChapter;
-      return {
-        ...novel,
-        ...formValue,
-        latest: formatChapter(formValue.latestChapter),
-        position: formatChapter(formValue.readChapter),
-        unread,
-        updatedAt: new Date().toISOString(),
-      };
-    });
-  } else {
-    state.novels.unshift(createNovel({ ...formValue, unread: formValue.latestChapter > formValue.readChapter }));
-  }
+  state.novels = state.novels.map((novel) => {
+    if (novel.id !== id) return novel;
+    return {
+      ...novel,
+      ...formValue,
+      latest: formatChapter(formValue.latestChapter),
+      position: formatChapter(formValue.readChapter),
+      unread: hasUnreadChapters(formValue),
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
 
-  saveState();
-  hideForm();
-  render();
+function hasUnreadChapters(novel) {
+  return novel.latestChapter > novel.readChapter;
 }
 
 function findDuplicateNovel(target, ignoreId = "") {
@@ -331,20 +380,21 @@ function normalizeText(text) {
 }
 
 function sanitizeNovel(novel) {
+  // Older exports used Japanese strings like "第12話"; normalize both shapes.
   const latestChapter = toChapterNumber(novel.latestChapter ?? novel.latest);
   const readChapter = toChapterNumber(novel.readChapter ?? novel.position);
 
   return {
     id: novel.id || createId(),
     title: String(novel.title || "").trim(),
-    site: novel.site || "その他",
+    site: novel.site || OTHER_SITE,
     url: String(novel.url || "").trim(),
     latestChapter,
     readChapter,
     latest: formatChapter(latestChapter),
     position: formatChapter(readChapter),
     memo: String(novel.memo || "").trim(),
-    unread: Boolean(novel.unread) || latestChapter > readChapter,
+    unread: Boolean(novel.unread) || hasUnreadChapters({ latestChapter, readChapter }),
     updatedAt: novel.updatedAt || new Date().toISOString(),
   };
 }
@@ -372,6 +422,13 @@ function dedupeNovels(novels) {
 function setFormError(message) {
   elements.formError.textContent = message;
   elements.formError.classList.toggle("is-hidden", !message);
+}
+
+function setSelectValue(select, value) {
+  if (![...select.options].some((option) => option.value === value)) {
+    select.append(new Option(value, value));
+  }
+  select.value = value;
 }
 
 function getFilteredNovels() {
@@ -502,18 +559,31 @@ function bindCardActions(container) {
 
 function handleCardAction(button) {
   const card = button.closest("[data-id]");
+  if (!card) return;
   const novel = state.novels.find((item) => item.id === card.dataset.id);
   if (!novel) return;
 
-  const action = button.dataset.action;
-  if (action === "edit") showForm(novel);
-  if (action === "read") markNovelRead(novel);
-  if (action === "update") markNovelUpdated(novel);
-  if (action === "delete" && confirm(`「${novel.title}」を削除しますか？`)) {
-    state.novels = state.novels.filter((item) => item.id !== novel.id);
-    saveState();
-    render();
+  switch (button.dataset.action) {
+    case "edit":
+      showForm(novel);
+      break;
+    case "read":
+      markNovelRead(novel);
+      break;
+    case "update":
+      markNovelUpdated(novel);
+      break;
+    case "delete":
+      deleteNovel(novel);
+      break;
   }
+}
+
+function deleteNovel(novel) {
+  if (!confirm(`「${novel.title}」を削除しますか？`)) return;
+  state.novels = state.novels.filter((item) => item.id !== novel.id);
+  saveState();
+  render();
 }
 
 function markNovelUpdated(novel) {
@@ -527,11 +597,16 @@ function markNovelUpdated(novel) {
 }
 
 function markNovelRead(novel) {
+  const readChapter = getReadableLatestChapter(novel);
   updateNovel(novel.id, {
-    readChapter: Math.max(novel.readChapter || 0, novel.latestChapter || 0),
-    position: formatChapter(Math.max(novel.readChapter || 0, novel.latestChapter || 0)),
+    readChapter,
+    position: formatChapter(readChapter),
     unread: false,
   });
+}
+
+function getReadableLatestChapter(novel) {
+  return Math.max(novel.readChapter || 0, novel.latestChapter || 0);
 }
 
 function updateNovel(id, patch) {
@@ -542,7 +617,7 @@ function updateNovel(id, patch) {
 
 function markAllRead() {
   state.novels = state.novels.map((novel) => {
-    const readChapter = Math.max(novel.readChapter || 0, novel.latestChapter || 0);
+    const readChapter = getReadableLatestChapter(novel);
     return {
       ...novel,
       readChapter,
