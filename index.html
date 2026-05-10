@@ -51,7 +51,7 @@
         </div>
         <p class="check-status is-hidden" id="bookmarkletStatus" aria-live="polite"></p>
 
-        <section class="catalog-search" aria-labelledby="catalogSearchTitle">
+        <section class="catalog-search search-panel" aria-labelledby="catalogSearchTitle">
           <div class="section-head compact-head">
             <div>
               <h3 id="catalogSearchTitle">外部サイトから作品を探す</h3>
@@ -66,9 +66,16 @@
           <button class="primary-button is-hidden" id="catalogExternalSearch" type="button">外部サイトで検索</button>
           <div class="empty-state is-hidden" id="catalogEmpty"></div>
           <div class="catalog-results" id="catalogResults" aria-live="polite"></div>
+        </section>
+
+        <section class="manual-register" aria-labelledby="manualRegisterTitle">
+          <div>
+            <h3 id="manualRegisterTitle">URL・手入力で登録</h3>
+            <p>API未対応サイトや検索で見つからない作品は、作品URLから本棚へ追加できます。</p>
+          </div>
           <div class="url-register">
             <label class="search-box">
-              作品URLで登録
+              作品URL
               <input id="quickUrl" type="url" placeholder="カクヨム・ハーメルン等の作品URL" />
             </label>
             <button class="ghost-button" id="quickRegister" type="button">URLを登録</button>

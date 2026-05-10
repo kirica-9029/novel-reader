@@ -237,6 +237,7 @@ h2 {
 .novel-form,
 .toolbar,
 .catalog-search,
+.manual-register,
 .ranking-controls,
 .updates-summary,
 .catalog-card,
@@ -306,10 +307,31 @@ textarea {
 }
 
 .catalog-search {
+  position: sticky;
+  top: 58px;
+  z-index: 4;
   display: grid;
   gap: 12px;
   padding: 12px;
   margin-bottom: 14px;
+}
+
+.manual-register {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.manual-register h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.manual-register p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .compact-head {
