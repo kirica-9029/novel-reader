@@ -119,10 +119,14 @@
         <div class="section-head">
           <div>
             <h2>更新</h2>
-            <p>未読扱いの作品を優先表示します。</p>
+            <p>本棚の小説家になろう作品をAPIで確認し、更新がある作品を優先表示します。</p>
           </div>
-          <button class="ghost-button" id="markAllRead" type="button">全て既読</button>
+          <div class="section-actions">
+            <button class="primary-button" id="checkUpdates" type="button">更新確認</button>
+            <button class="ghost-button" id="markAllRead" type="button">全て既読</button>
+          </div>
         </div>
+        <p class="check-status is-hidden" id="updateCheckStatus" aria-live="polite"></p>
         <div class="updates-summary" id="updatesSummary" aria-live="polite"></div>
         <div class="empty-state is-hidden" id="updatesEmpty">未読更新はありません。</div>
         <div class="updates-list" id="updatesList"></div>
@@ -186,12 +190,12 @@
     <noscript>
       <section class="noscript-message" aria-label="JavaScriptが無効です">
         <h2>JavaScriptを有効にしてください</h2>
-        <p>Novel Shelfの本棚管理、更新通知、ランキング検索はブラウザ内で動作します。</p>
+        <p>Novel Shelfの本棚管理、更新通知、読了位置管理はブラウザ内で動作します。</p>
       </section>
     </noscript>
 
     <footer class="app-footer">
-      <p>Novel ShelfはWeb小説の本棚管理、更新通知、読了位置管理、ランキング検索に対応した軽量リーダーです。</p>
+      <p>Novel ShelfはWeb小説の本棚管理、更新通知、読了位置管理に対応した軽量リーダーです。</p>
     </footer>
 
     <script src="./app.js" defer></script>

@@ -7,6 +7,7 @@ const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン"
 const SEARCH_SITE_OPTIONS = [DEFAULT_SITE];
 const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
 const NAROU_API_URL = "https://api.syosetu.com/novelapi/api/";
+const NAROU_JSONP_TIMEOUT = 12000;
 const SITE_HOME_URLS = {
   "小説家になろう": "https://syosetu.com/",
   カクヨム: "https://kakuyomu.jp/",
@@ -32,6 +33,9 @@ const state = {
   rankingSite: "all",
   rankingSort: "updated",
   rankingSearch: "",
+  updateChecking: false,
+  updateCheckMessage: "",
+  updateCheckError: "",
 };
 
 const elements = {};
@@ -75,6 +79,8 @@ function cacheElements() {
     updatesList: document.querySelector("#updatesList"),
     updatesEmpty: document.querySelector("#updatesEmpty"),
     updatesSummary: document.querySelector("#updatesSummary"),
+    checkUpdates: document.querySelector("#checkUpdates"),
+    updateCheckStatus: document.querySelector("#updateCheckStatus"),
     markAllRead: document.querySelector("#markAllRead"),
     rankingControls: document.querySelector("#rankingControls"),
     rankingSite: document.querySelector("#rankingSite"),
@@ -158,6 +164,7 @@ function bindLibraryEvents() {
 }
 
 function bindUpdateEvents() {
+  elements.checkUpdates.addEventListener("click", checkNarouUpdates);
   elements.markAllRead.addEventListener("click", markAllRead);
 }
 
@@ -226,6 +233,7 @@ function createNovel(values) {
     title: values.title,
     site: values.site,
     url: values.url || "",
+    ncode: normalizeNcode(values.ncode) || extractNarouNcode(values.url),
     latestChapter,
     readChapter,
     latest: formatChapter(latestChapter),
@@ -234,6 +242,8 @@ function createNovel(values) {
     lastViewedAt: values.lastViewedAt || "",
     memo: values.memo || "",
     unread: Boolean(values.unread),
+    lastCheckDiff: toChapterNumber(values.lastCheckDiff),
+    lastCheckedAt: values.lastCheckedAt || "",
     updatedAt: values.updatedAt || new Date().toISOString(),
   };
 }
@@ -328,6 +338,7 @@ function getNovelFormValue() {
     title: elements.novelTitle.value.trim(),
     site: elements.novelSite.value,
     url: elements.novelUrl.value.trim(),
+    ncode: extractNarouNcode(elements.novelUrl.value),
     latestChapter: toChapterNumber(elements.novelLatest.value),
     readChapter: toChapterNumber(elements.novelPosition.value),
     memo: elements.novelMemo.value.trim(),
@@ -348,6 +359,7 @@ function upsertNovel(formValue, id) {
       latest: formatChapter(formValue.latestChapter),
       position: formatChapter(formValue.readChapter),
       unread: hasUnreadChapters(formValue),
+      lastCheckDiff: 0,
       updatedAt: new Date().toISOString(),
     };
   });
@@ -372,6 +384,16 @@ function normalizeUrl(url) {
   return String(url || "").trim().replace(/\/+$/, "").toLowerCase();
 }
 
+function normalizeNcode(value) {
+  const match = String(value || "").trim().match(/^n\d{4}[a-z]+$/i);
+  return match ? match[0].toUpperCase() : "";
+}
+
+function extractNarouNcode(url) {
+  const match = String(url || "").match(/ncode\.syosetu\.com\/(n\d{4}[a-z]+)\/?/i);
+  return match ? match[1].toUpperCase() : "";
+}
+
 function normalizeText(text) {
   return String(text || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -386,6 +408,7 @@ function sanitizeNovel(novel) {
     title: String(novel.title || "").trim(),
     site: novel.site || OTHER_SITE,
     url: String(novel.url || "").trim(),
+    ncode: normalizeNcode(novel.ncode) || extractNarouNcode(novel.url),
     latestChapter,
     readChapter,
     latest: formatChapter(latestChapter),
@@ -394,6 +417,8 @@ function sanitizeNovel(novel) {
     lastViewedAt: novel.lastViewedAt || "",
     memo: String(novel.memo || "").trim(),
     unread: Boolean(novel.unread) || hasUnreadChapters({ latestChapter, readChapter }),
+    lastCheckDiff: toChapterNumber(novel.lastCheckDiff),
+    lastCheckedAt: novel.lastCheckedAt || "",
     updatedAt: novel.updatedAt || new Date().toISOString(),
   };
 }
@@ -497,20 +522,65 @@ async function searchCatalog() {
 }
 
 async function fetchNarouNovels(keyword) {
-  const response = await fetch(buildNarouApiUrl(keyword), { mode: "cors" });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  return parseNarouApiResults(data);
-}
-
-function buildNarouApiUrl(keyword) {
-  const params = new URLSearchParams({
-    out: "json",
+  const data = await requestNarouApi({
     word: keyword,
     lim: "20",
     of: "t-n-w-s-gl-ga",
   });
-  return `${NAROU_API_URL}?${params.toString()}`;
+  return parseNarouApiResults(data);
+}
+
+async function fetchNarouNovelsByNcodes(ncodes) {
+  const data = await requestNarouApi({
+    ncode: ncodes.join("-").toLowerCase(),
+    lim: String(ncodes.length),
+    of: "t-n-w-s-gl-ga",
+  });
+  return parseNarouApiResults(data);
+}
+
+function requestNarouApi(params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `novelShelfNarou_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const script = document.createElement("script");
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Narou API JSONP timeout"));
+    }, NAROU_JSONP_TIMEOUT);
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Narou API JSONP failed"));
+    };
+    script.src = buildNarouApiUrl(params, callbackName);
+    document.head.append(script);
+  });
+}
+
+function buildNarouApiUrl(apiParams, callbackName) {
+  /*
+   * なろう公式APIはJSONPを提供しています。
+   * GitHub Pagesのような静的サイトから out=json をfetchするとCORSで読めない場合があるため、
+   * ブラウザ単体では out=jsonp + callback のscript読み込みで取得します。
+   * サーバー側でAPIプロキシを用意できる場合は、ここを out=json のfetch構成に戻せます。
+   */
+  const searchParams = new URLSearchParams({
+    out: "jsonp",
+    callback: callbackName,
+    ...apiParams,
+  });
+  return `${NAROU_API_URL}?${searchParams.toString()}`;
 }
 
 function parseNarouApiResults(data) {
@@ -520,13 +590,15 @@ function parseNarouApiResults(data) {
 
 function normalizeNarouNovel(item) {
   if (!item?.ncode || !item?.title) return null;
+  const ncode = normalizeNcode(item.ncode);
+  if (!ncode) return null;
   return {
-    id: `narou-${item.ncode}`,
-    ncode: item.ncode,
+    id: `narou-${ncode}`,
+    ncode,
     title: item.title,
     writer: item.writer || "作者不明",
     site: DEFAULT_SITE,
-    url: `https://ncode.syosetu.com/${String(item.ncode).toLowerCase()}/`,
+    url: `https://ncode.syosetu.com/${ncode.toLowerCase()}/`,
     latestChapter: toChapterNumber(item.general_all_no),
     story: item.story || "",
     lastup: item.general_lastup || "",
@@ -554,14 +626,7 @@ function shouldHideCatalogStatus() {
 
 function getCatalogErrorMessage(error) {
   console.warn("Narou API request failed", error);
-  /*
-   * GitHub Pagesは静的ホスティングのため、ブラウザからAPIを直接fetchします。
-   * もし小説家になろうAPI側のCORS設定やブラウザ制約で直接呼び出せない場合は、
-   * Cloudflare Workers / Netlify Functions / GitHub Pagesとは別の軽量APIなどで
-   * `https://api.syosetu.com/novelapi/api/?out=json...` を中継するプロキシを用意し、
-   * このfetch先だけをプロキシURLへ差し替える構成にしてください。
-   */
-  return "小説家になろうAPIを取得できませんでした。CORSまたは通信制限の可能性があります。";
+  return "小説家になろうAPIを取得できませんでした。時間を置いて再検索してください。";
 }
 
 function renderCatalogCard(item) {
@@ -601,6 +666,7 @@ function addCatalogNovel(catalogId) {
     title: item.title,
     site: item.site,
     url: item.url,
+    ncode: item.ncode,
     latestChapter: item.latestChapter,
     readChapter: 0,
     memo: `作者：${item.writer}\n${item.story}`,
@@ -621,11 +687,98 @@ function renderLibrary() {
 
 function renderUpdates() {
   const updates = getUpdatedNovels();
+  renderUpdateCheckStatus();
+  elements.checkUpdates.disabled = state.updateChecking;
+  elements.checkUpdates.textContent = state.updateChecking ? "確認中..." : "更新確認";
   elements.updatesSummary.classList.toggle("is-hidden", updates.length === 0);
   elements.updatesSummary.innerHTML = renderUpdatesSummary(updates);
   elements.updatesEmpty.classList.toggle("is-hidden", updates.length > 0);
   elements.updatesList.innerHTML = updates.map(renderUpdateCard).join("");
   bindCardActions(elements.updatesList);
+}
+
+function renderUpdateCheckStatus() {
+  const message = state.updateCheckError || state.updateCheckMessage;
+  elements.updateCheckStatus.textContent = message;
+  elements.updateCheckStatus.classList.toggle("is-hidden", !message);
+  elements.updateCheckStatus.classList.toggle("is-error", Boolean(state.updateCheckError));
+}
+
+async function checkNarouUpdates() {
+  const targets = state.novels.filter(isNarouNovelWithNcode);
+  if (targets.length === 0) {
+    state.updateCheckError = "Nコードを持つ小説家になろう作品が本棚にありません。なろう検索から追加するか、なろう作品URLを登録してください。";
+    state.updateCheckMessage = "";
+    renderUpdates();
+    return;
+  }
+
+  state.updateChecking = true;
+  state.updateCheckError = "";
+  state.updateCheckMessage = `${targets.length}件の更新を確認しています...`;
+  renderUpdates();
+
+  try {
+    const latestItems = await fetchNarouNovelsByNcodes(targets.map((novel) => novel.ncode));
+    const latestByNcode = new Map(latestItems.map((item) => [item.ncode, item]));
+    const checkedAt = new Date().toISOString();
+    let updatedCount = 0;
+    let missingCount = 0;
+
+    state.novels = state.novels.map((novel) => {
+      if (!isNarouNovelWithNcode(novel)) return novel;
+      const latestItem = latestByNcode.get(novel.ncode);
+      if (!latestItem) {
+        missingCount += 1;
+        return { ...novel, lastCheckedAt: checkedAt };
+      }
+
+      const patch = createNarouUpdatePatch(novel, latestItem, checkedAt);
+      if (patch.hasUpdate) updatedCount += 1;
+      delete patch.hasUpdate;
+      return { ...novel, ...patch };
+    });
+
+    state.updateCheckMessage = `更新確認完了：更新あり ${updatedCount}件 / 対象 ${targets.length}件${missingCount ? `（取得なし ${missingCount}件）` : ""}`;
+    state.updateCheckError = "";
+    saveState();
+  } catch (error) {
+    console.warn("Narou update check failed", error);
+    state.updateCheckError = "更新確認に失敗しました。なろうAPIの混雑、通信制限、またはJSONP読み込み失敗の可能性があります。";
+    state.updateCheckMessage = "";
+  } finally {
+    state.updateChecking = false;
+    render();
+  }
+}
+
+function isNarouNovelWithNcode(novel) {
+  return Boolean(novel.ncode);
+}
+
+function createNarouUpdatePatch(novel, latestItem, checkedAt) {
+  const previousChapter = toChapterNumber(novel.latestChapter);
+  const latestChapter = toChapterNumber(latestItem.latestChapter);
+  const previousUpdatedAt = getTimestamp(novel.updatedAt);
+  const latestUpdatedIso = latestItem.lastup ? toIsoDateOrNow(latestItem.lastup) : novel.updatedAt;
+  const latestUpdatedAt = getTimestamp(latestUpdatedIso);
+  const chapterDiff = Math.max(0, latestChapter - previousChapter);
+  const hasUpdate = chapterDiff > 0 || latestUpdatedAt > previousUpdatedAt;
+  const unread = hasUpdate || latestChapter > toChapterNumber(novel.readChapter) || novel.unread;
+
+  return {
+    hasUpdate,
+    title: latestItem.title || novel.title,
+    site: DEFAULT_SITE,
+    url: latestItem.url || novel.url,
+    ncode: latestItem.ncode || novel.ncode,
+    latestChapter,
+    latest: formatChapter(latestChapter),
+    updatedAt: latestUpdatedIso,
+    unread,
+    lastCheckDiff: chapterDiff,
+    lastCheckedAt: checkedAt,
+  };
 }
 
 function getUpdatedNovels() {
@@ -656,6 +809,7 @@ function renderUpdateCard(novel) {
   const unreadCount = getUnreadChapterCount(novel);
   const nextChapter = getNextReadableChapter(novel);
   const diffText = getUpdateDiffText(novel, unreadCount);
+  const checkDiffText = novel.lastCheckDiff ? `API差分 +${novel.lastCheckDiff}話` : "";
   const continueButton = novel.url
     ? renderContinueLink(novel)
     : "";
@@ -674,6 +828,7 @@ function renderUpdateCard(novel) {
           <span class="badge">${escapeHtml(novel.site)}</span>
           ${novel.latestChapter ? `<span class="badge">更新 ${novel.latestChapter}話</span>` : ""}
           ${unreadCount ? `<span class="badge unread">未読 ${unreadCount}話</span>` : ""}
+          ${checkDiffText ? `<span class="badge unread">${escapeHtml(checkDiffText)}</span>` : ""}
           <span class="badge">次 ${nextChapter}話</span>
         </div>
         <p class="update-diff">${escapeHtml(diffText)}</p>
@@ -710,8 +865,11 @@ function renderNovelCard(novel) {
           <div class="meta-row">
             <span class="badge">${escapeHtml(novel.site)}</span>
             ${novel.unread ? '<span class="badge unread">更新あり</span>' : ""}
+            ${novel.unread ? '<span class="new-label">NEW</span>' : ""}
             ${novel.latestChapter ? `<span class="badge">更新 ${novel.latestChapter}話</span>` : ""}
+            ${novel.lastCheckDiff ? `<span class="badge unread">差分 +${novel.lastCheckDiff}話</span>` : ""}
             ${novel.readChapter ? `<span class="badge">読了 ${novel.readChapter}話</span>` : ""}
+            ${novel.ncode ? `<span class="badge">${escapeHtml(novel.ncode)}</span>` : ""}
           </div>
         </div>
       </div>
@@ -721,7 +879,6 @@ function renderNovelCard(novel) {
       <div class="card-actions">
         ${urlButton}
         <button class="text-button" type="button" data-action="read">既読</button>
-        <button class="text-button" type="button" data-action="update">更新あり</button>
         <button class="text-button" type="button" data-action="edit">編集</button>
         <button class="text-button" type="button" data-action="delete">削除</button>
       </div>
@@ -789,9 +946,6 @@ function handleCardAction(button) {
     case "continue":
       saveReadingProgress(novel);
       break;
-    case "update":
-      markNovelUpdated(novel);
-      break;
     case "delete":
       deleteNovel(novel);
       break;
@@ -819,6 +973,7 @@ function saveReadingProgress(novel) {
       lastOpenedChapter: openedChapter,
       lastViewedAt: now,
       unread: item.latestChapter > readChapter,
+      lastCheckDiff: item.latestChapter > readChapter ? item.lastCheckDiff : 0,
     };
   });
   saveState();
@@ -833,18 +988,10 @@ function getNextReadableChapter(novel) {
 }
 
 function getContinueUrl(novel, chapter) {
-  // API連携時はここで作品IDと話数から正確な話URLを組み立てる。
+  if (novel.ncode && novel.site === DEFAULT_SITE) {
+    return `https://ncode.syosetu.com/${novel.ncode.toLowerCase()}/${chapter}/`;
+  }
   return novel.url || SITE_HOME_URLS[novel.site] || "#";
-}
-
-function markNovelUpdated(novel) {
-  const latestChapter = Math.max(novel.latestChapter || 0, novel.readChapter || 0) + 1;
-  updateNovel(novel.id, {
-    latestChapter,
-    latest: formatChapter(latestChapter),
-    unread: true,
-    updatedAt: new Date().toISOString(),
-  });
 }
 
 function markNovelRead(novel) {
@@ -853,6 +1000,7 @@ function markNovelRead(novel) {
     readChapter,
     position: formatChapter(readChapter),
     unread: false,
+    lastCheckDiff: 0,
   });
 }
 
@@ -874,6 +1022,7 @@ function markAllRead() {
       readChapter,
       position: formatChapter(readChapter),
       unread: false,
+      lastCheckDiff: 0,
     };
   });
   saveState();

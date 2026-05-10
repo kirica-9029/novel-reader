@@ -315,6 +315,28 @@ textarea {
   font-size: 1.05rem;
 }
 
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.check-status {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.check-status.is-error {
+  border-color: color-mix(in srgb, var(--danger), transparent 55%);
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .site-tabs {
   display: flex;
   gap: 8px;
