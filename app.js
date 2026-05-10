@@ -1,5 +1,6 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
+const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings"]);
 
 const periodLabels = {
   daily: "日間",
@@ -46,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadState();
   applyTheme(loadTheme());
   bindEvents();
+  initializeRoute();
   render();
 });
 
@@ -93,6 +95,9 @@ function bindEvents() {
   elements.themeToggle.addEventListener("click", toggleTheme);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
+  });
+  window.addEventListener("hashchange", () => {
+    switchView(getViewFromLocation(), { replaceHash: false });
   });
 
   elements.openAddForm.addEventListener("click", () => showForm());
@@ -219,7 +224,21 @@ function toggleTheme() {
   applyTheme(nextTheme);
 }
 
-function switchView(viewName) {
+function initializeRoute() {
+  const viewName = getViewFromLocation();
+  switchView(viewName, { replaceHash: false });
+}
+
+function getViewFromLocation() {
+  const hashView = location.hash.replace(/^#\/?/, "");
+  const queryView = new URLSearchParams(location.search).get("view");
+  if (VIEW_NAMES.has(hashView)) return hashView;
+  if (VIEW_NAMES.has(queryView)) return queryView;
+  return "library";
+}
+
+function switchView(viewName, options = {}) {
+  if (!VIEW_NAMES.has(viewName)) return;
   state.activeView = viewName;
   elements.tabButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.view === viewName);
@@ -227,6 +246,9 @@ function switchView(viewName) {
   elements.panels.forEach((panel) => {
     panel.classList.toggle("is-active", panel.dataset.viewPanel === viewName);
   });
+  if (options.replaceHash !== false && location.hash !== `#/${viewName}`) {
+    history.replaceState(null, "", `#/${viewName}`);
+  }
 }
 
 function showForm(novel = null) {

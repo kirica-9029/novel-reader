@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Novel Shelf - ページを移動しています</title>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var projectBase = path.indexOf("/novel-reader/") === 0 ? "/novel-reader/" : "/";
+        var route = path.slice(projectBase.length).replace(/\/$/, "");
+        var hash = route ? "#/" + encodeURIComponent(route.split("/")[0]) : "";
+        window.location.replace(projectBase + window.location.search + hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Novel Shelfを開いています。</p>
+    <p><a href="./">トップへ戻る</a></p>
+  </body>
+</html>
