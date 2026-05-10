@@ -120,6 +120,7 @@ h2 {
 .tab-button,
 .segment-button,
 .site-tab,
+.site-card,
 .primary-button,
 .ghost-button,
 .danger-button,
@@ -343,14 +344,68 @@ textarea {
 }
 
 .site-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 8px;
-  overflow-x: auto;
   margin: 0;
   padding-bottom: 2px;
   padding-left: 0;
   list-style: none;
-  scrollbar-width: thin;
+}
+
+.site-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 10px;
+  width: 100%;
+  min-height: 92px;
+  padding: 10px;
+  text-align: left;
+}
+
+.site-card.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent), var(--surface) 88%);
+}
+
+.site-card-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.site-card-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.site-card-name {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.site-card-description {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.site-card-mode {
+  width: max-content;
+  margin-top: 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .url-register {
@@ -845,6 +900,10 @@ textarea {
   .catalog-card {
     grid-template-columns: 1fr auto;
     align-items: center;
+  }
+
+  .site-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .catalog-add-button {

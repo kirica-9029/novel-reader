@@ -19,6 +19,16 @@ const SITE_HOME_URLS = {
   pixiv小説: "https://www.pixiv.net/novel",
   ノクターン: "https://noc.syosetu.com/",
 };
+const SITE_CARD_META = {
+  "小説家になろう": { icon: "な", description: "公式APIで作品情報を検索して本棚へ追加できます。" },
+  カクヨム: { icon: "K", description: "検索ページを開き、作品URLを貼り付けて管理します。" },
+  ハーメルン: { icon: "H", description: "検索ページから作品を探し、外部リンクとして登録します。" },
+  Arcadia: { icon: "A", description: "外部検索で作品を探し、URL登録で管理します。" },
+  暁: { icon: "暁", description: "外部検索とURL登録で読了位置を管理します。" },
+  "ノベルアップ+": { icon: "N+", description: "検索ページを開いて作品URLを本棚に保存します。" },
+  pixiv小説: { icon: "P", description: "pixiv小説の検索ページから作品を探します。" },
+  ノクターン: { icon: "夜", description: "なろう系URLとしてNコード読了管理に対応します。" },
+};
 const API_SEARCH_SITES = new Set([DEFAULT_SITE]);
 const EXTERNAL_SEARCH_BUILDERS = {
   カクヨム: (keyword) => `https://kakuyomu.jp/search?q=${encodeURIComponent(keyword)}`,
@@ -144,11 +154,20 @@ function populateStaticOptions() {
 function populateCatalogSiteTabs() {
   elements.catalogSiteTabs.innerHTML = SEARCH_SITE_OPTIONS.map((site) => `
     <li>
-      <button class="site-tab${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
-        ${escapeHtml(site)}
+      <button class="site-card${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
+        <span class="site-card-icon" aria-hidden="true">${escapeHtml(getSiteCardMeta(site).icon)}</span>
+        <span class="site-card-body">
+          <span class="site-card-name">${escapeHtml(site)}</span>
+          <span class="site-card-description">${escapeHtml(getSiteCardMeta(site).description)}</span>
+          <span class="site-card-mode">${isApiSearchSite(site) ? "API検索" : "外部リンク管理"}</span>
+        </span>
       </button>
     </li>
   `).join("");
+}
+
+function getSiteCardMeta(site) {
+  return SITE_CARD_META[site] || { icon: site.slice(0, 1), description: "外部検索とURL登録で管理します。" };
 }
 
 function populateSelect(select, options, config = {}) {
