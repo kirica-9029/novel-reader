@@ -98,6 +98,7 @@ h2 {
 }
 
 .tab-button,
+.segment-button,
 .primary-button,
 .ghost-button,
 .danger-button,
@@ -119,6 +120,19 @@ h2 {
 .tab-button.is-active {
   border-color: var(--accent);
   color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.segment-button {
+  padding: 8px 10px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.segment-button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -183,6 +197,7 @@ h2 {
 
 .novel-form,
 .toolbar,
+.ranking-controls,
 .novel-card,
 .update-card,
 .ranking-item,
@@ -243,6 +258,42 @@ textarea {
   margin-bottom: 14px;
 }
 
+.ranking-controls {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.period-control {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.period-control legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.ranking-filter-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.ranking-results h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
 .novel-list,
 .ranking-list {
   display: grid;
@@ -253,6 +304,34 @@ textarea {
 .update-card,
 .ranking-item {
   padding: 14px;
+}
+
+.ranking-item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.ranking-rank {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.ranking-body {
+  min-width: 0;
+}
+
+.ranking-source {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .card-top {
@@ -281,6 +360,17 @@ textarea {
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--muted);
   font-size: 0.78rem;
 }
@@ -411,6 +501,15 @@ textarea {
   .settings-grid {
     grid-template-columns: repeat(3, 1fr);
     align-items: end;
+  }
+
+  .ranking-filter-grid {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: end;
+  }
+
+  .ranking-keyword {
+    grid-column: span 2;
   }
 
   .search-box {

@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索ができる軽量リーダーアプリです。" />
     <title>Novel Shelf</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -122,32 +123,69 @@
       <section class="view" id="rankingView" data-view-panel="ranking">
         <div class="section-head">
           <div>
-            <h2>ランキング検索</h2>
-            <p>初期版はサンプルデータ検索です。外部API化しやすい構成にしています。</p>
+            <h2>Web小説ランキング検索</h2>
+            <p>各サイトのランキングを日間・週間・月間で絞り込めます。</p>
           </div>
         </div>
-        <div class="toolbar">
-          <select id="rankingSite" aria-label="ランキングサイト">
-            <option value="all">全サイト</option>
-            <option value="小説家になろう">小説家になろう</option>
-            <option value="カクヨム">カクヨム</option>
-            <option value="ハーメルン">ハーメルン</option>
-            <option value="Arcadia">Arcadia</option>
-            <option value="暁">暁</option>
-            <option value="ノベルアップ+">ノベルアップ+</option>
-            <option value="pixiv小説">pixiv小説</option>
-            <option value="ノクターン">ノクターン</option>
-          </select>
-          <select id="rankingGenre" aria-label="ジャンル">
-            <option value="all">全ジャンル</option>
-            <option value="異世界">異世界</option>
-            <option value="現代">現代</option>
-            <option value="SF">SF</option>
-            <option value="二次創作">二次創作</option>
-          </select>
-          <input id="rankingSearch" type="search" placeholder="キーワード" />
-        </div>
-        <div class="ranking-list" id="rankingList"></div>
+        <form class="ranking-controls" id="rankingControls" role="search" aria-label="ランキング検索条件">
+          <fieldset class="period-control">
+            <legend>期間</legend>
+            <div class="segmented-control" aria-label="ランキング期間">
+              <button class="segment-button is-active" type="button" data-ranking-period="daily">日間</button>
+              <button class="segment-button" type="button" data-ranking-period="weekly">週間</button>
+              <button class="segment-button" type="button" data-ranking-period="monthly">月間</button>
+            </div>
+          </fieldset>
+
+          <div class="ranking-filter-grid">
+            <label>
+              サイト
+              <select id="rankingSite" aria-label="ランキングサイト">
+                <option value="all">全サイト</option>
+                <option value="小説家になろう">小説家になろう</option>
+                <option value="カクヨム">カクヨム</option>
+                <option value="ハーメルン">ハーメルン</option>
+                <option value="Arcadia">Arcadia</option>
+                <option value="暁">暁</option>
+                <option value="ノベルアップ+">ノベルアップ+</option>
+                <option value="pixiv小説">pixiv小説</option>
+                <option value="ノクターン">ノクターン</option>
+              </select>
+            </label>
+            <label>
+              ジャンル
+              <select id="rankingGenre" aria-label="ジャンル">
+                <option value="all">全ジャンル</option>
+                <option value="異世界">異世界</option>
+                <option value="現代">現代</option>
+                <option value="SF">SF</option>
+                <option value="二次創作">二次創作</option>
+              </select>
+            </label>
+            <label>
+              ソート
+              <select id="rankingSort" aria-label="ソート">
+                <option value="score">ポイント順</option>
+                <option value="title">作品名順</option>
+                <option value="site">サイト順</option>
+              </select>
+            </label>
+            <label>
+              タグ
+              <input id="rankingTag" type="search" placeholder="例：恋愛、宇宙" />
+            </label>
+            <label class="ranking-keyword">
+              キーワード
+              <input id="rankingSearch" type="search" placeholder="作品名・サイト・タグ" />
+            </label>
+          </div>
+        </form>
+
+        <section class="ranking-results" aria-labelledby="rankingResultsTitle">
+          <h3 id="rankingResultsTitle">ランキング一覧</h3>
+          <div class="empty-state is-hidden" id="rankingEmpty">条件に合うランキングはありません。</div>
+          <div class="ranking-list" id="rankingList" aria-live="polite"></div>
+        </section>
       </section>
 
       <section class="view" id="settingsView" data-view-panel="settings">

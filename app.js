@@ -1,18 +1,29 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
 
+const periodLabels = {
+  daily: "日間",
+  weekly: "週間",
+  monthly: "月間",
+};
+
 const rankingSeed = [
-  { title: "薬草師は静かに暮らしたい", site: "小説家になろう", genre: "異世界", score: 9820 },
-  { title: "夜勤明けの魔法使い", site: "カクヨム", genre: "現代", score: 8640 },
-  { title: "星間郵便局の配達記録", site: "カクヨム", genre: "SF", score: 8120 },
-  { title: "もしも英雄科に編入したら", site: "ハーメルン", genre: "二次創作", score: 7900 },
-  { title: "辺境都市の図書館長", site: "小説家になろう", genre: "異世界", score: 7460 },
-  { title: "放課後タイムリープ相談室", site: "カクヨム", genre: "現代", score: 6980 },
-  { title: "古き掲示板の竜騎士", site: "Arcadia", genre: "異世界", score: 6740 },
-  { title: "暁に響く航宙譚", site: "暁", genre: "SF", score: 6410 },
-  { title: "ノベラの街角食堂", site: "ノベルアップ+", genre: "現代", score: 6180 },
-  { title: "放課後イラストノベル", site: "pixiv小説", genre: "現代", score: 5870 },
-  { title: "夜想の迷宮記録", site: "ノクターン", genre: "異世界", score: 5520 },
+  { title: "薬草師は静かに暮らしたい", site: "小説家になろう", genre: "異世界", tags: ["スローライフ", "薬師"], scores: { daily: 9820, weekly: 42100, monthly: 162400 } },
+  { title: "辺境都市の図書館長", site: "小説家になろう", genre: "異世界", tags: ["内政", "読書"], scores: { daily: 7460, weekly: 39800, monthly: 155900 } },
+  { title: "夜勤明けの魔法使い", site: "カクヨム", genre: "現代", tags: ["現代ファンタジー", "社会人"], scores: { daily: 8640, weekly: 45200, monthly: 149500 } },
+  { title: "星間郵便局の配達記録", site: "カクヨム", genre: "SF", tags: ["宇宙", "仕事"], scores: { daily: 8120, weekly: 38600, monthly: 171200 } },
+  { title: "もしも英雄科に編入したら", site: "ハーメルン", genre: "二次創作", tags: ["学園", "バトル"], scores: { daily: 7900, weekly: 47100, monthly: 183000 } },
+  { title: "放課後の錬金ログ", site: "ハーメルン", genre: "二次創作", tags: ["錬金術", "日常"], scores: { daily: 6350, weekly: 35100, monthly: 128800 } },
+  { title: "古き掲示板の竜騎士", site: "Arcadia", genre: "異世界", tags: ["掲示板", "竜"], scores: { daily: 6740, weekly: 30500, monthly: 112200 } },
+  { title: "北方砦の傭兵録", site: "Arcadia", genre: "異世界", tags: ["戦記", "成り上がり"], scores: { daily: 5480, weekly: 33600, monthly: 121900 } },
+  { title: "暁に響く航宙譚", site: "暁", genre: "SF", tags: ["艦隊", "宇宙"], scores: { daily: 6410, weekly: 35900, monthly: 135700 } },
+  { title: "黎明の魔導士候補生", site: "暁", genre: "異世界", tags: ["魔法", "学園"], scores: { daily: 5220, weekly: 28800, monthly: 118300 } },
+  { title: "ノベラの街角食堂", site: "ノベルアップ+", genre: "現代", tags: ["料理", "群像劇"], scores: { daily: 6180, weekly: 31400, monthly: 109600 } },
+  { title: "竜と配信者の週末", site: "ノベルアップ+", genre: "現代", tags: ["配信", "コメディ"], scores: { daily: 5900, weekly: 32900, monthly: 101500 } },
+  { title: "放課後イラストノベル", site: "pixiv小説", genre: "現代", tags: ["青春", "創作"], scores: { daily: 5870, weekly: 27600, monthly: 96500 } },
+  { title: "春待ちアトリエ", site: "pixiv小説", genre: "現代", tags: ["恋愛", "青春"], scores: { daily: 5030, weekly: 30100, monthly: 104900 } },
+  { title: "夜想の迷宮記録", site: "ノクターン", genre: "異世界", tags: ["迷宮", "ダーク"], scores: { daily: 5520, weekly: 34200, monthly: 132100 } },
+  { title: "月下の契約者", site: "ノクターン", genre: "異世界", tags: ["恋愛", "ファンタジー"], scores: { daily: 4980, weekly: 29700, monthly: 120400 } },
 ];
 
 const state = {
@@ -20,8 +31,11 @@ const state = {
   activeView: "library",
   librarySearch: "",
   siteFilter: "all",
+  rankingPeriod: "daily",
   rankingSite: "all",
   rankingGenre: "all",
+  rankingSort: "score",
+  rankingTag: "",
   rankingSearch: "",
 };
 
@@ -59,10 +73,15 @@ function cacheElements() {
     updatesList: document.querySelector("#updatesList"),
     updatesEmpty: document.querySelector("#updatesEmpty"),
     markAllRead: document.querySelector("#markAllRead"),
+    rankingControls: document.querySelector("#rankingControls"),
+    rankingPeriodButtons: document.querySelectorAll("[data-ranking-period]"),
     rankingSite: document.querySelector("#rankingSite"),
     rankingGenre: document.querySelector("#rankingGenre"),
+    rankingSort: document.querySelector("#rankingSort"),
+    rankingTag: document.querySelector("#rankingTag"),
     rankingSearch: document.querySelector("#rankingSearch"),
     rankingList: document.querySelector("#rankingList"),
+    rankingEmpty: document.querySelector("#rankingEmpty"),
     exportData: document.querySelector("#exportData"),
     importData: document.querySelector("#importData"),
     clearData: document.querySelector("#clearData"),
@@ -88,12 +107,29 @@ function bindEvents() {
     renderLibrary();
   });
   elements.markAllRead.addEventListener("click", markAllRead);
+  elements.rankingControls.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
+  elements.rankingPeriodButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.rankingPeriod = button.dataset.rankingPeriod;
+      renderRanking();
+    });
+  });
   elements.rankingSite.addEventListener("change", (event) => {
     state.rankingSite = event.target.value;
     renderRanking();
   });
   elements.rankingGenre.addEventListener("change", (event) => {
     state.rankingGenre = event.target.value;
+    renderRanking();
+  });
+  elements.rankingSort.addEventListener("change", (event) => {
+    state.rankingSort = event.target.value;
+    renderRanking();
+  });
+  elements.rankingTag.addEventListener("input", (event) => {
+    state.rankingTag = event.target.value.trim();
     renderRanking();
   });
   elements.rankingSearch.addEventListener("input", (event) => {
@@ -497,26 +533,63 @@ function markAllRead() {
 }
 
 function renderRanking() {
-  const keyword = state.rankingSearch.toLowerCase();
-  const items = rankingSeed.filter((item) => {
-    const matchesSite = state.rankingSite === "all" || item.site === state.rankingSite;
-    const matchesGenre = state.rankingGenre === "all" || item.genre === state.rankingGenre;
-    const matchesKeyword = item.title.toLowerCase().includes(keyword);
-    return matchesSite && matchesGenre && matchesKeyword;
+  const items = getRankingItems();
+  elements.rankingPeriodButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.rankingPeriod === state.rankingPeriod);
   });
+  elements.rankingEmpty.classList.toggle("is-hidden", items.length > 0);
+  elements.rankingList.innerHTML = items.map(renderRankingItem).join("");
+}
 
-  elements.rankingList.innerHTML = items.map((item, index) => `
+function getRankingItems() {
+  const keyword = normalizeText(state.rankingSearch);
+  const tagKeyword = normalizeText(state.rankingTag);
+
+  return rankingSeed
+    .filter((item) => {
+      const searchableText = normalizeText(`${item.title} ${item.site} ${item.genre} ${item.tags.join(" ")}`);
+      const tagText = normalizeText(item.tags.join(" "));
+      const matchesSite = state.rankingSite === "all" || item.site === state.rankingSite;
+      const matchesGenre = state.rankingGenre === "all" || item.genre === state.rankingGenre;
+      const matchesKeyword = !keyword || searchableText.includes(keyword);
+      const matchesTag = !tagKeyword || tagText.includes(tagKeyword);
+      return matchesSite && matchesGenre && matchesKeyword && matchesTag;
+    })
+    .sort(sortRankingItems);
+}
+
+function sortRankingItems(a, b) {
+  if (state.rankingSort === "title") return a.title.localeCompare(b.title, "ja");
+  if (state.rankingSort === "site") return a.site.localeCompare(b.site, "ja") || getRankingScore(b) - getRankingScore(a);
+  return getRankingScore(b) - getRankingScore(a);
+}
+
+function getRankingScore(item) {
+  return item.scores[state.rankingPeriod] || 0;
+}
+
+function renderRankingItem(item, index) {
+  const score = getRankingScore(item);
+  const tags = item.tags.map((tag) => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join("");
+
+  return `
     <article class="ranking-item">
-      <div class="card-top">
-        <h3 class="novel-title">${index + 1}. ${escapeHtml(item.title)}</h3>
-        <span class="badge">${item.score.toLocaleString()} pt</span>
-      </div>
-      <div class="meta-row">
-        <span class="badge">${escapeHtml(item.site)}</span>
-        <span class="badge">${escapeHtml(item.genre)}</span>
+      <div class="ranking-rank" aria-label="${index + 1}位">${index + 1}</div>
+      <div class="ranking-body">
+        <div class="card-top">
+          <div>
+            <p class="ranking-source">${escapeHtml(item.site)} ${periodLabels[state.rankingPeriod]}ランキング</p>
+            <h3 class="novel-title">${escapeHtml(item.title)}</h3>
+          </div>
+          <span class="badge">${score.toLocaleString()} pt</span>
+        </div>
+        <div class="meta-row">
+          <span class="badge">${escapeHtml(item.genre)}</span>
+          ${tags}
+        </div>
       </div>
     </article>
-  `).join("");
+  `;
 }
 
 function exportData() {
