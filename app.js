@@ -1029,7 +1029,7 @@ function renderUpdatesSummary(updates) {
   const totalDiff = updates.reduce((sum, novel) => sum + getUnreadChapterCount(novel), 0);
   return `
     <span class="badge unread">NEW ${updates.length}件</span>
-    <span class="badge">未読 ${totalDiff}話</span>
+    <span class="badge">未読: ${totalDiff}話</span>
     <span class="muted">更新順で巡回できます</span>
   `;
 }
@@ -1056,7 +1056,7 @@ function renderUpdateCard(novel) {
         <div class="meta-row">
           <span class="badge">${escapeHtml(novel.site)}</span>
           ${novel.generalAllNo ? `<span class="badge">更新 ${novel.generalAllNo}話</span>` : ""}
-          ${unreadCount ? `<span class="badge unread">未読 ${unreadCount}話</span>` : ""}
+          ${unreadCount ? `<span class="badge unread">未読: ${unreadCount}話</span>` : ""}
           ${checkDiffText ? `<span class="badge unread">${escapeHtml(checkDiffText)}</span>` : ""}
           <span class="badge">次 ${nextChapter}話</span>
         </div>
@@ -1099,8 +1099,10 @@ function renderNovelCard(novel) {
             ${novel.unread ? '<span class="badge unread">更新あり</span>' : ""}
             ${novel.unread ? '<span class="new-label">NEW</span>' : ""}
             ${novel.generalAllNo ? `<span class="badge">更新 ${novel.generalAllNo}話</span>` : ""}
+            ${novel.ncode ? `<span class="badge">読了 ${novel.lastReadEpisode || 0} / 全 ${novel.generalAllNo || 0}話</span>` : ""}
+            ${unreadCount ? `<span class="badge unread">未読: ${unreadCount}話</span>` : ""}
             ${novel.lastCheckDiff ? `<span class="badge unread">差分 +${novel.lastCheckDiff}話</span>` : ""}
-            ${novel.lastReadEpisode ? `<span class="badge">読了 ${novel.lastReadEpisode}話</span>` : ""}
+            ${!novel.ncode && novel.lastReadEpisode ? `<span class="badge">読了 ${novel.lastReadEpisode}話</span>` : ""}
             ${novel.ncode ? `<span class="badge">${escapeHtml(novel.ncode)}</span>` : ""}
           </div>
         </div>
@@ -1123,7 +1125,7 @@ function renderNovelCard(novel) {
 function renderContinueLink(novel) {
   const chapter = getNextReadableChapter(novel);
   return `
-    <a class="text-button" href="${escapeHtml(getContinueUrl(novel, chapter))}" target="_blank" rel="noopener" data-action="continue">
+    <a class="text-button" href="${escapeHtml(getContinueUrl(novel, chapter))}" target="_blank" rel="noopener">
       続きから読む
     </a>
   `;
@@ -1191,9 +1193,10 @@ function renderReaderPanel(model) {
       <div class="meta-row">
         <span class="badge">最終更新 ${escapeHtml(model.generalLastup || "不明")}</span>
         <span class="badge">全 ${model.totalEpisodes}話</span>
-        <span class="badge">読了 ${model.lastReadEpisode}話</span>
-        <span class="badge unread">未読 ${model.unreadEpisodes}話</span>
+        <span class="badge">読了 ${model.lastReadEpisode} / 全 ${model.totalEpisodes}話</span>
+        <span class="badge unread">未読: ${model.unreadEpisodes}話</span>
       </div>
+      <p class="muted">話一覧から開いた話数だけ読了位置として保存します。本文は保存しません。</p>
       <p class="reader-story">${escapeHtml(model.story || "あらすじはありません。")}</p>
     </article>
     <section class="episode-section" aria-labelledby="episodeListTitle">
@@ -1246,7 +1249,7 @@ function getProgressText(novel, unreadCount) {
   const latestEpisode = toChapterNumber(novel.generalAllNo ?? novel.latestChapter);
   const lastReadEpisode = toChapterNumber(novel.lastReadEpisode ?? novel.readChapter);
   if (!latestEpisode && !lastReadEpisode) return isExternalManagedNovel(novel) ? "API未対応サイトのため、更新は外部リンクで確認します" : "";
-  if (unreadCount > 0) return `未読 ${unreadCount}話（${lastReadEpisode}話 → ${latestEpisode}話）`;
+  if (unreadCount > 0) return `未読: ${unreadCount}話（${lastReadEpisode}話 → ${latestEpisode}話）`;
   if (lastReadEpisode > 0) return `最新話まで読了済み（${lastReadEpisode}話）`;
   return `更新話数：${latestEpisode}話`;
 }
@@ -1288,9 +1291,6 @@ function handleCardAction(button) {
     case "read":
       markNovelRead(novel);
       break;
-    case "continue":
-      saveReadingProgress(novel);
-      break;
     case "reader":
       openReader(novel);
       break;
@@ -1305,28 +1305,6 @@ function deleteNovel(novel) {
   state.novels = state.novels.filter((item) => item.id !== novel.id);
   saveState();
   render();
-}
-
-function saveReadingProgress(novel) {
-  const openedChapter = getNextReadableChapter(novel);
-  const readChapter = Math.max(novel.lastReadEpisode || novel.readChapter || 0, openedChapter);
-  const now = new Date().toISOString();
-
-  state.novels = state.novels.map((item) => {
-    if (item.id !== novel.id) return item;
-    return {
-      ...item,
-      lastReadEpisode: readChapter,
-      readChapter,
-      position: formatChapter(readChapter),
-      lastOpenedChapter: openedChapter,
-      lastViewedAt: now,
-      unread: (item.generalAllNo || item.latestChapter) > readChapter,
-      lastCheckDiff: (item.generalAllNo || item.latestChapter) > readChapter ? item.lastCheckDiff : 0,
-    };
-  });
-  saveState();
-  window.setTimeout(render, 0);
 }
 
 function getNextReadableChapter(novel) {
@@ -1433,7 +1411,7 @@ function renderRankingItem(novel, index) {
         <div class="meta-row">
           <span class="badge">${escapeHtml(novel.site)}</span>
           <span class="badge">更新 ${latestEpisode}話</span>
-          <span class="badge unread">差分 ${unreadCount}話</span>
+          <span class="badge unread">未読: ${unreadCount}話</span>
           <span class="badge">次 ${nextChapter}話</span>
         </div>
         <p class="update-diff">${escapeHtml(getUpdateDiffText(novel, unreadCount))}</p>
