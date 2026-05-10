@@ -4,8 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索ができる軽量リーダーアプリです。" />
-    <title>Novel Shelf</title>
+    <meta name="theme-color" content="#f7f7f4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#10110f" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content="Novel Shelfは、小説家になろう、カクヨム、ハーメルンなどのWeb小説をお気に入り管理し、更新通知、読了位置、ランキング検索をまとめて扱える軽量リーダーです。" />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Novel Shelf" />
+    <meta property="og:title" content="Novel Shelf - Web小説リーダー・更新通知・ランキング検索" />
+    <meta property="og:description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索をブラウザだけで使える軽量アプリ。" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Novel Shelf - Web小説リーダー・更新通知・ランキング検索" />
+    <meta name="twitter:description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索をブラウザだけで使える軽量アプリ。" />
+    <title>Novel Shelf - Web小説リーダー・更新通知・ランキング検索</title>
+    <link rel="canonical" href="./" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -206,6 +218,17 @@
         <textarea id="exportBox" class="export-box" rows="8" readonly placeholder="書き出したJSONがここに表示されます"></textarea>
       </section>
     </main>
+
+    <noscript>
+      <section class="noscript-message" aria-label="JavaScriptが無効です">
+        <h2>JavaScriptを有効にしてください</h2>
+        <p>Novel Shelfの本棚管理、更新通知、ランキング検索はブラウザ内で動作します。</p>
+      </section>
+    </noscript>
+
+    <footer class="app-footer">
+      <p>Novel ShelfはWeb小説の本棚管理、更新通知、読了位置管理、ランキング検索に対応した軽量リーダーです。</p>
+    </footer>
 
     <script src="app.js" defer></script>
   </body>
