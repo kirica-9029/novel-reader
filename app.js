@@ -339,10 +339,45 @@ function renderLibrary() {
 }
 
 function renderUpdates() {
-  const updates = state.novels.filter((novel) => novel.unread);
+  const updates = getUpdatedNovels();
   elements.updatesEmpty.classList.toggle("is-hidden", updates.length > 0);
-  elements.updatesList.innerHTML = updates.map(renderNovelCard).join("");
+  elements.updatesList.innerHTML = updates.map(renderUpdateCard).join("");
   bindCardActions(elements.updatesList);
+}
+
+function getUpdatedNovels() {
+  return state.novels
+    .filter((novel) => novel.unread)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+function renderUpdateCard(novel) {
+  const unreadCount = getUnreadChapterCount(novel);
+  const continueButton = novel.url
+    ? `<a class="text-button" href="${escapeHtml(novel.url)}" target="_blank" rel="noopener">続きから読む</a>`
+    : "";
+
+  return `
+    <article class="update-card" data-id="${novel.id}">
+      <div class="update-main">
+        <div class="update-title-row">
+          <span class="new-label">NEW</span>
+          <h3 class="novel-title">${escapeHtml(novel.title)}</h3>
+        </div>
+        <div class="meta-row">
+          <span class="badge">${escapeHtml(novel.site)}</span>
+          ${novel.latestChapter ? `<span class="badge">更新 ${novel.latestChapter}話</span>` : ""}
+          ${unreadCount ? `<span class="badge unread">未読 ${unreadCount}話</span>` : ""}
+        </div>
+        <p class="update-time">更新日時：${escapeHtml(formatUpdatedAt(novel.updatedAt))}</p>
+      </div>
+      <div class="card-actions">
+        ${continueButton}
+        <button class="text-button" type="button" data-action="read">既読</button>
+        <button class="text-button" type="button" data-action="edit">編集</button>
+      </div>
+    </article>
+  `;
 }
 
 function renderNovelCard(novel) {
@@ -389,6 +424,18 @@ function getProgressText(novel, unreadCount) {
   return `更新話数：${novel.latestChapter}話`;
 }
 
+function formatUpdatedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "不明";
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function bindCardActions(container) {
   container.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => handleCardAction(button));
@@ -396,7 +443,7 @@ function bindCardActions(container) {
 }
 
 function handleCardAction(button) {
-  const card = button.closest(".novel-card");
+  const card = button.closest("[data-id]");
   const novel = state.novels.find((item) => item.id === card.dataset.id);
   if (!novel) return;
 

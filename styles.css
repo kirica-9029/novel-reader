@@ -184,6 +184,7 @@ h2 {
 .novel-form,
 .toolbar,
 .novel-card,
+.update-card,
 .ranking-item,
 .settings-grid,
 .export-box,
@@ -249,6 +250,7 @@ textarea {
 }
 
 .novel-card,
+.update-card,
 .ranking-item {
   padding: 14px;
 }
@@ -287,6 +289,35 @@ textarea {
   background: color-mix(in srgb, var(--accent), transparent 78%);
   color: var(--accent-strong);
   font-weight: 700;
+}
+
+.update-card {
+  display: grid;
+  gap: 8px;
+}
+
+.update-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.new-label {
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.update-time {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .card-actions {
