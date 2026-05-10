@@ -54,43 +54,51 @@
           <div class="section-head compact-head">
             <div>
               <h3 id="catalogSearchTitle">外部サイトから作品を探す</h3>
-              <p>小説家になろう公式APIから作品情報を取得します。</p>
+              <p id="catalogModeNote">小説家になろうはAPI検索、API未対応サイトは外部検索リンクで管理します。</p>
             </div>
           </div>
-          <div class="site-tabs" id="catalogSiteTabs" aria-label="小説投稿サイト"></div>
+          <ul class="site-tabs" id="catalogSiteTabs" aria-label="小説投稿サイト"></ul>
           <label class="search-box">
-            小説家になろう検索
+            <span id="catalogSearchLabel">小説家になろう検索</span>
             <input id="catalogSearch" type="search" placeholder="キーワードを入力" />
           </label>
+          <button class="primary-button is-hidden" id="catalogExternalSearch" type="button">外部サイトで検索</button>
           <div class="empty-state is-hidden" id="catalogEmpty"></div>
           <div class="catalog-results" id="catalogResults" aria-live="polite"></div>
+          <div class="url-register">
+            <label class="search-box">
+              作品URLで登録
+              <input id="quickUrl" type="url" placeholder="カクヨム・ハーメルン等の作品URL" />
+            </label>
+            <button class="ghost-button" id="quickRegister" type="button">URLを登録</button>
+          </div>
         </section>
 
         <form class="novel-form is-hidden" id="novelForm">
           <input type="hidden" id="novelId" />
-          <label>
+          <label class="title-field">
             作品名
             <input id="novelTitle" type="text" autocomplete="off" required placeholder="例：転生したら..." />
           </label>
-          <label>
+          <label class="site-field">
             サイト
             <select id="novelSite" required></select>
           </label>
-          <label>
+          <label class="url-field">
             URL
             <input id="novelUrl" type="url" placeholder="https://..." />
           </label>
           <div class="form-grid">
-            <label>
+            <label class="detail-field">
               更新話数
               <input id="novelLatest" type="number" min="0" inputmode="numeric" placeholder="12" />
             </label>
-            <label>
+            <label class="detail-field">
               最終読了話数
               <input id="novelPosition" type="number" min="0" inputmode="numeric" placeholder="10" />
             </label>
           </div>
-          <label>
+          <label class="memo-field">
             メモ
             <textarea id="novelMemo" rows="3" placeholder="次に読む前の覚え書き"></textarea>
           </label>

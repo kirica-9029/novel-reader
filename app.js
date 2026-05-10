@@ -4,7 +4,7 @@ const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings"]);
 const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
 const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
-const SEARCH_SITE_OPTIONS = [DEFAULT_SITE];
+const SEARCH_SITE_OPTIONS = SITE_OPTIONS;
 const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
 const NAROU_API_URL = "https://api.syosetu.com/novelapi/api/";
 const NAROU_JSONP_TIMEOUT = 12000;
@@ -18,6 +18,26 @@ const SITE_HOME_URLS = {
   pixiv小説: "https://www.pixiv.net/novel",
   ノクターン: "https://noc.syosetu.com/",
 };
+const API_SEARCH_SITES = new Set([DEFAULT_SITE]);
+const EXTERNAL_SEARCH_BUILDERS = {
+  カクヨム: (keyword) => `https://kakuyomu.jp/search?q=${encodeURIComponent(keyword)}`,
+  ハーメルン: (keyword) => `https://syosetu.org/search/?mode=search&word=${encodeURIComponent(keyword)}`,
+  Arcadia: (keyword) => `https://www.google.com/search?q=${encodeURIComponent(`${keyword} site:mai-net.net`)}`,
+  暁: (keyword) => `https://www.google.com/search?q=${encodeURIComponent(`${keyword} site:akatsuki-novels.com`)}`,
+  "ノベルアップ+": (keyword) => `https://novelup.plus/search?q=${encodeURIComponent(keyword)}`,
+  pixiv小説: (keyword) => `https://www.pixiv.net/search/novels/${encodeURIComponent(keyword)}`,
+  ノクターン: (keyword) => `https://noc.syosetu.com/search/search/?word=${encodeURIComponent(keyword)}`,
+};
+const SITE_URL_PATTERNS = [
+  { site: "ノクターン", pattern: /noc\.syosetu\.com/i },
+  { site: DEFAULT_SITE, pattern: /ncode\.syosetu\.com|syosetu\.com/i },
+  { site: "カクヨム", pattern: /kakuyomu\.jp/i },
+  { site: "ハーメルン", pattern: /syosetu\.org/i },
+  { site: "Arcadia", pattern: /mai-net\.net/i },
+  { site: "暁", pattern: /akatsuki-novels\.com/i },
+  { site: "ノベルアップ+", pattern: /novelup\.plus/i },
+  { site: "pixiv小説", pattern: /pixiv\.net\/novel|pixiv\.net\/.*novels/i },
+];
 
 const state = {
   novels: [],
@@ -59,9 +79,14 @@ function cacheElements() {
     panels: document.querySelectorAll("[data-view-panel]"),
     openAddForm: document.querySelector("#openAddForm"),
     catalogSiteTabs: document.querySelector("#catalogSiteTabs"),
+    catalogModeNote: document.querySelector("#catalogModeNote"),
+    catalogSearchLabel: document.querySelector("#catalogSearchLabel"),
     catalogSearch: document.querySelector("#catalogSearch"),
+    catalogExternalSearch: document.querySelector("#catalogExternalSearch"),
     catalogResults: document.querySelector("#catalogResults"),
     catalogEmpty: document.querySelector("#catalogEmpty"),
+    quickUrl: document.querySelector("#quickUrl"),
+    quickRegister: document.querySelector("#quickRegister"),
     novelForm: document.querySelector("#novelForm"),
     cancelEdit: document.querySelector("#cancelEdit"),
     novelId: document.querySelector("#novelId"),
@@ -105,9 +130,11 @@ function populateStaticOptions() {
 
 function populateCatalogSiteTabs() {
   elements.catalogSiteTabs.innerHTML = SEARCH_SITE_OPTIONS.map((site) => `
-    <button class="site-tab${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
-      ${escapeHtml(site)}
-    </button>
+    <li>
+      <button class="site-tab${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
+        ${escapeHtml(site)}
+      </button>
+    </li>
   `).join("");
 }
 
@@ -143,16 +170,38 @@ function bindLibraryEvents() {
   elements.openAddForm.addEventListener("click", () => showForm());
   elements.catalogSearch.addEventListener("input", (event) => {
     state.catalogSearch = event.target.value.trim();
-    queueCatalogSearch();
+    if (isApiSearchSite(state.catalogSite)) {
+      queueCatalogSearch();
+    } else {
+      state.catalogResults = [];
+      state.catalogError = "";
+      state.catalogHasSearched = false;
+      renderCatalogResults();
+    }
+  });
+  elements.catalogExternalSearch.addEventListener("click", openExternalCatalogSearch);
+  elements.quickRegister.addEventListener("click", registerNovelFromUrl);
+  elements.quickUrl.addEventListener("input", () => {
+    if (!elements.novelForm.classList.contains("is-hidden")) return;
+    const detectedSite = detectSiteFromUrl(elements.quickUrl.value);
+    if (detectedSite) setFormError("");
   });
   elements.catalogSiteTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-catalog-site]");
     if (!button) return;
     state.catalogSite = button.dataset.catalogSite;
-    queueCatalogSearch(0);
+    state.catalogResults = [];
+    state.catalogError = "";
+    state.catalogHasSearched = false;
+    if (isApiSearchSite(state.catalogSite)) queueCatalogSearch(0);
+    renderCatalogResults();
   });
   elements.cancelEdit.addEventListener("click", hideForm);
   elements.novelForm.addEventListener("submit", saveNovelFromForm);
+  elements.novelUrl.addEventListener("input", () => {
+    const detectedSite = detectSiteFromUrl(elements.novelUrl.value);
+    if (detectedSite) setSelectValue(elements.novelSite, detectedSite);
+  });
   elements.librarySearch.addEventListener("input", (event) => {
     state.librarySearch = event.target.value.trim();
     renderLibrary();
@@ -296,8 +345,9 @@ function switchView(viewName, options = {}) {
   }
 }
 
-function showForm(novel = null) {
+function showForm(novel = null, options = {}) {
   elements.novelForm.classList.remove("is-hidden");
+  elements.novelForm.classList.toggle("is-url-register", Boolean(options.urlRegister));
   setFormError("");
   elements.novelId.value = novel?.id || "";
   elements.novelTitle.value = novel?.title || "";
@@ -312,6 +362,7 @@ function showForm(novel = null) {
 function hideForm() {
   elements.novelForm.reset();
   elements.novelId.value = "";
+  elements.novelForm.classList.remove("is-url-register");
   setFormError("");
   elements.novelForm.classList.add("is-hidden");
 }
@@ -334,11 +385,13 @@ function saveNovelFromForm(event) {
 }
 
 function getNovelFormValue() {
+  const url = elements.novelUrl.value.trim();
+  const detectedSite = detectSiteFromUrl(url);
   return {
     title: elements.novelTitle.value.trim(),
-    site: elements.novelSite.value,
-    url: elements.novelUrl.value.trim(),
-    ncode: extractNarouNcode(elements.novelUrl.value),
+    site: detectedSite || elements.novelSite.value,
+    url,
+    ncode: extractNarouNcode(url),
     latestChapter: toChapterNumber(elements.novelLatest.value),
     readChapter: toChapterNumber(elements.novelPosition.value),
     memo: elements.novelMemo.value.trim(),
@@ -392,6 +445,13 @@ function normalizeNcode(value) {
 function extractNarouNcode(url) {
   const match = String(url || "").match(/ncode\.syosetu\.com\/(n\d{4}[a-z]+)\/?/i);
   return match ? match[1].toUpperCase() : "";
+}
+
+function detectSiteFromUrl(url) {
+  const target = String(url || "").trim();
+  if (!target) return "";
+  const matched = SITE_URL_PATTERNS.find((entry) => entry.pattern.test(target));
+  return matched?.site || OTHER_SITE;
 }
 
 function normalizeText(text) {
@@ -472,6 +532,7 @@ function render() {
 }
 
 function renderCatalogResults() {
+  renderCatalogMode();
   elements.catalogEmpty.textContent = getCatalogStatusText();
   elements.catalogEmpty.classList.toggle("is-hidden", shouldHideCatalogStatus());
   elements.catalogResults.innerHTML = state.catalogResults.map(renderCatalogCard).join("");
@@ -479,6 +540,15 @@ function renderCatalogResults() {
     button.classList.toggle("is-active", button.dataset.catalogSite === state.catalogSite);
   });
   bindCatalogActions();
+}
+
+function renderCatalogMode() {
+  const isApiMode = isApiSearchSite(state.catalogSite);
+  elements.catalogSearchLabel.textContent = isApiMode ? `${state.catalogSite} API検索` : `${state.catalogSite} 外部検索`;
+  elements.catalogModeNote.textContent = isApiMode
+    ? `${state.catalogSite}は公式APIから作品情報を取得し、そのまま本棚へ追加できます。`
+    : `${state.catalogSite}は現時点ではAPI未対応のため、検索ページを開いて作品URLを貼り付け登録します。`;
+  elements.catalogExternalSearch.classList.toggle("is-hidden", isApiMode);
 }
 
 function queueCatalogSearch(delay = 350) {
@@ -496,9 +566,9 @@ async function searchCatalog() {
     return;
   }
 
-  if (state.catalogSite !== DEFAULT_SITE) {
+  if (!isApiSearchSite(state.catalogSite)) {
     state.catalogResults = [];
-    state.catalogError = "現在は小説家になろう検索のみ対応しています。";
+    state.catalogError = "";
     state.catalogHasSearched = true;
     state.catalogLoading = false;
     renderCatalogResults();
@@ -519,6 +589,32 @@ async function searchCatalog() {
     state.catalogLoading = false;
     renderCatalogResults();
   }
+}
+
+function isApiSearchSite(site) {
+  return API_SEARCH_SITES.has(site);
+}
+
+function openExternalCatalogSearch() {
+  const keyword = state.catalogSearch.trim();
+  if (!keyword) {
+    state.catalogError = "検索キーワードを入力してください。";
+    state.catalogHasSearched = true;
+    renderCatalogResults();
+    return;
+  }
+
+  const url = buildExternalSearchUrl(state.catalogSite, keyword);
+  window.open(url, "_blank", "noopener");
+  state.catalogError = "";
+  state.catalogHasSearched = true;
+  renderCatalogResults();
+}
+
+function buildExternalSearchUrl(site, keyword) {
+  const builder = EXTERNAL_SEARCH_BUILDERS[site];
+  if (builder) return builder(keyword);
+  return `https://www.google.com/search?q=${encodeURIComponent(`${keyword} ${site}`)}`;
 }
 
 async function fetchNarouNovels(keyword) {
@@ -612,6 +708,10 @@ function toIsoDateOrNow(value) {
 }
 
 function getCatalogStatusText() {
+  if (!isApiSearchSite(state.catalogSite)) {
+    if (state.catalogError) return state.catalogError;
+    return "API未対応サイトは検索ページを新しいタブで開き、作品URLを貼り付けて本棚へ登録します。";
+  }
   if (!state.catalogSearch) return "キーワードを入力すると小説家になろう公式APIで検索します。";
   if (state.catalogLoading) return "検索しています...";
   if (state.catalogError) return state.catalogError;
@@ -620,6 +720,7 @@ function getCatalogStatusText() {
 }
 
 function shouldHideCatalogStatus() {
+  if (!isApiSearchSite(state.catalogSite)) return false;
   if (!state.catalogSearch) return false;
   return !state.catalogLoading && !state.catalogError && state.catalogResults.length > 0;
 }
@@ -676,6 +777,69 @@ function addCatalogNovel(catalogId) {
   state.novels.unshift(novel);
   saveState();
   render();
+}
+
+async function registerNovelFromUrl() {
+  const url = elements.quickUrl.value.trim();
+  if (!url) {
+    showCatalogMessage("作品URLを入力してください。");
+    return;
+  }
+
+  const site = detectSiteFromUrl(url);
+  const ncode = extractNarouNcode(url);
+
+  if (ncode) {
+    try {
+      const [item] = await fetchNarouNovelsByNcodes([ncode]);
+      if (item) {
+        addNarouItemFromUrl(item);
+        return;
+      }
+    } catch (error) {
+      console.warn("Narou URL registration failed", error);
+    }
+  }
+
+  showForm({
+    title: "",
+    site,
+    url,
+    latestChapter: 0,
+    readChapter: 0,
+    memo: site === DEFAULT_SITE ? "API取得に失敗しました。タイトルを入力して保存してください。" : "API未対応サイトの外部リンク管理です。",
+  }, { urlRegister: true });
+  setFormError("タイトルだけ入力して保存できます。サイト種別はURLから判定しました。");
+}
+
+function addNarouItemFromUrl(item) {
+  if (findDuplicateNovel(item)) {
+    showCatalogMessage("この作品はすでに本棚に登録されています。");
+    return;
+  }
+
+  const novel = createNovel({
+    title: item.title,
+    site: item.site,
+    url: item.url,
+    ncode: item.ncode,
+    latestChapter: item.latestChapter,
+    readChapter: 0,
+    memo: `作者：${item.writer}\n${item.story}`,
+    unread: item.latestChapter > 0,
+    updatedAt: toIsoDateOrNow(item.lastup),
+  });
+  state.novels.unshift(novel);
+  elements.quickUrl.value = "";
+  showCatalogMessage("小説家になろうAPIから作品情報を取得して本棚に追加しました。");
+  saveState();
+  render();
+}
+
+function showCatalogMessage(message) {
+  state.catalogError = message;
+  state.catalogHasSearched = true;
+  renderCatalogResults();
 }
 
 function renderLibrary() {

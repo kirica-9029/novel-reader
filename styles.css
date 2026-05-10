@@ -258,6 +258,11 @@ h2 {
   margin-bottom: 14px;
 }
 
+.novel-form.is-url-register .form-grid,
+.novel-form.is-url-register .memo-field {
+  display: none;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -341,8 +346,18 @@ textarea {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  margin: 0;
   padding-bottom: 2px;
+  padding-left: 0;
+  list-style: none;
   scrollbar-width: thin;
+}
+
+.url-register {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 .ranking-controls {
@@ -626,6 +641,11 @@ textarea {
   .catalog-card {
     grid-template-columns: 1fr auto;
     align-items: center;
+  }
+
+  .url-register {
+    grid-template-columns: 1fr auto;
+    align-items: end;
   }
 
   .ranking-filter-grid {
