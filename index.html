@@ -6,17 +6,17 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f7f7f4" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#10110f" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="Novel Shelfは、小説家になろう、カクヨム、ハーメルンなどのWeb小説をお気に入り管理し、更新通知、読了位置、ランキング検索をまとめて扱える軽量リーダーです。" />
+    <meta name="description" content="Novel Shelfは、小説家になろう公式APIの作品検索、本棚登録、更新通知、読了位置管理をブラウザだけで使える軽量Web小説リーダーです。" />
     <meta name="robots" content="index, follow" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Novel Shelf" />
-    <meta property="og:title" content="Novel Shelf - Web小説リーダー・更新通知・ランキング検索" />
-    <meta property="og:description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索をブラウザだけで使える軽量アプリ。" />
+    <meta property="og:title" content="Novel Shelf - Web小説リーダー・更新巡回支援" />
+    <meta property="og:description" content="小説家になろう公式API検索、本棚登録、更新通知、読了位置管理をブラウザだけで使える軽量アプリ。" />
     <meta property="og:locale" content="ja_JP" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Novel Shelf - Web小説リーダー・更新通知・ランキング検索" />
-    <meta name="twitter:description" content="Web小説のお気に入り管理、更新通知、読了位置管理、ランキング検索をブラウザだけで使える軽量アプリ。" />
-    <title>Novel Shelf - Web小説リーダー・更新通知・ランキング検索</title>
+    <meta name="twitter:title" content="Novel Shelf - Web小説リーダー・更新巡回支援" />
+    <meta name="twitter:description" content="小説家になろう公式API検索、本棚登録、更新通知、読了位置管理をブラウザだけで使える軽量アプリ。" />
+    <title>Novel Shelf - Web小説リーダー・更新巡回支援</title>
     <link rel="canonical" href="./" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -35,7 +35,7 @@
       <nav class="tab-nav" aria-label="メイン">
         <button class="tab-button is-active" type="button" data-view="library">本棚</button>
         <button class="tab-button" type="button" data-view="updates">更新</button>
-        <button class="tab-button" type="button" data-view="ranking">ランキング</button>
+        <button class="tab-button" type="button" data-view="ranking">巡回</button>
         <button class="tab-button" type="button" data-view="settings">設定</button>
       </nav>
 
@@ -53,16 +53,16 @@
         <section class="catalog-search" aria-labelledby="catalogSearchTitle">
           <div class="section-head compact-head">
             <div>
-              <h3 id="catalogSearchTitle">作品登録用検索</h3>
-              <p>投稿サイトを切り替えて作品を探します。</p>
+              <h3 id="catalogSearchTitle">外部サイトから作品を探す</h3>
+              <p>小説家になろう公式APIから作品情報を取得します。</p>
             </div>
           </div>
           <div class="site-tabs" id="catalogSiteTabs" aria-label="小説投稿サイト"></div>
           <label class="search-box">
-            作品検索
-            <input id="catalogSearch" type="search" placeholder="作品名・タグで検索" />
+            小説家になろう検索
+            <input id="catalogSearch" type="search" placeholder="キーワードを入力" />
           </label>
-          <div class="empty-state is-hidden" id="catalogEmpty">条件に合う作品はありません。</div>
+          <div class="empty-state is-hidden" id="catalogEmpty"></div>
           <div class="catalog-results" id="catalogResults" aria-live="polite"></div>
         </section>
 

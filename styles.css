@@ -388,6 +388,10 @@ textarea {
   gap: 12px;
 }
 
+.catalog-card .muted {
+  overflow-wrap: anywhere;
+}
+
 .ranking-item {
   display: grid;
   grid-template-columns: 36px 1fr;

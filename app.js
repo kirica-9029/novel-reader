@@ -4,7 +4,9 @@ const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings"]);
 const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
 const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
+const SEARCH_SITE_OPTIONS = [DEFAULT_SITE];
 const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
+const NAROU_API_URL = "https://api.syosetu.com/novelapi/api/";
 const SITE_HOME_URLS = {
   "小説家になろう": "https://syosetu.com/",
   カクヨム: "https://kakuyomu.jp/",
@@ -16,33 +18,15 @@ const SITE_HOME_URLS = {
   ノクターン: "https://noc.syosetu.com/",
 };
 
-const catalogSeed = [
-  { id: "catalog-1", title: "薬草師は静かに暮らしたい", site: "小説家になろう", latestChapter: 12, tags: ["スローライフ", "薬師"], summary: "異世界ジャンルの注目作品。スローライフ、薬師が好きな読者向けです。" },
-  { id: "catalog-2", title: "辺境都市の図書館長", site: "小説家になろう", latestChapter: 13, tags: ["内政", "読書"], summary: "異世界ジャンルの注目作品。内政、読書が好きな読者向けです。" },
-  { id: "catalog-3", title: "夜勤明けの魔法使い", site: "カクヨム", latestChapter: 14, tags: ["現代ファンタジー", "社会人"], summary: "現代ジャンルの注目作品。現代ファンタジー、社会人が好きな読者向けです。" },
-  { id: "catalog-4", title: "星間郵便局の配達記録", site: "カクヨム", latestChapter: 15, tags: ["宇宙", "仕事"], summary: "SFジャンルの注目作品。宇宙、仕事が好きな読者向けです。" },
-  { id: "catalog-5", title: "もしも英雄科に編入したら", site: "ハーメルン", latestChapter: 16, tags: ["学園", "バトル"], summary: "二次創作ジャンルの注目作品。学園、バトルが好きな読者向けです。" },
-  { id: "catalog-6", title: "放課後の錬金ログ", site: "ハーメルン", latestChapter: 17, tags: ["錬金術", "日常"], summary: "二次創作ジャンルの注目作品。錬金術、日常が好きな読者向けです。" },
-  { id: "catalog-7", title: "古き掲示板の竜騎士", site: "Arcadia", latestChapter: 18, tags: ["掲示板", "竜"], summary: "異世界ジャンルの注目作品。掲示板、竜が好きな読者向けです。" },
-  { id: "catalog-8", title: "北方砦の傭兵録", site: "Arcadia", latestChapter: 19, tags: ["戦記", "成り上がり"], summary: "異世界ジャンルの注目作品。戦記、成り上がりが好きな読者向けです。" },
-  { id: "catalog-9", title: "暁に響く航宙譚", site: "暁", latestChapter: 20, tags: ["艦隊", "宇宙"], summary: "SFジャンルの注目作品。艦隊、宇宙が好きな読者向けです。" },
-  { id: "catalog-10", title: "黎明の魔導士候補生", site: "暁", latestChapter: 21, tags: ["魔法", "学園"], summary: "異世界ジャンルの注目作品。魔法、学園が好きな読者向けです。" },
-  { id: "catalog-11", title: "ノベラの街角食堂", site: "ノベルアップ+", latestChapter: 22, tags: ["料理", "群像劇"], summary: "現代ジャンルの注目作品。料理、群像劇が好きな読者向けです。" },
-  { id: "catalog-12", title: "竜と配信者の週末", site: "ノベルアップ+", latestChapter: 23, tags: ["配信", "コメディ"], summary: "現代ジャンルの注目作品。配信、コメディが好きな読者向けです。" },
-  { id: "catalog-13", title: "放課後イラストノベル", site: "pixiv小説", latestChapter: 24, tags: ["青春", "創作"], summary: "現代ジャンルの注目作品。青春、創作が好きな読者向けです。" },
-  { id: "catalog-14", title: "春待ちアトリエ", site: "pixiv小説", latestChapter: 25, tags: ["恋愛", "青春"], summary: "現代ジャンルの注目作品。恋愛、青春が好きな読者向けです。" },
-  { id: "catalog-15", title: "夜想の迷宮記録", site: "ノクターン", latestChapter: 26, tags: ["迷宮", "ダーク"], summary: "異世界ジャンルの注目作品。迷宮、ダークが好きな読者向けです。" },
-  { id: "catalog-16", title: "月下の契約者", site: "ノクターン", latestChapter: 27, tags: ["恋愛", "ファンタジー"], summary: "異世界ジャンルの注目作品。恋愛、ファンタジーが好きな読者向けです。" },
-].map((item) => ({
-  ...item,
-  url: SITE_HOME_URLS[item.site] || "",
-}));
-
 const state = {
   novels: [],
   activeView: "library",
   catalogSite: DEFAULT_SITE,
   catalogSearch: "",
+  catalogResults: [],
+  catalogLoading: false,
+  catalogError: "",
+  catalogHasSearched: false,
   librarySearch: "",
   siteFilter: "all",
   rankingSite: "all",
@@ -51,6 +35,7 @@ const state = {
 };
 
 const elements = {};
+let catalogSearchTimer = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
@@ -113,7 +98,7 @@ function populateStaticOptions() {
 }
 
 function populateCatalogSiteTabs() {
-  elements.catalogSiteTabs.innerHTML = SITE_OPTIONS.map((site) => `
+  elements.catalogSiteTabs.innerHTML = SEARCH_SITE_OPTIONS.map((site) => `
     <button class="site-tab${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
       ${escapeHtml(site)}
     </button>
@@ -152,13 +137,13 @@ function bindLibraryEvents() {
   elements.openAddForm.addEventListener("click", () => showForm());
   elements.catalogSearch.addEventListener("input", (event) => {
     state.catalogSearch = event.target.value.trim();
-    renderCatalogResults();
+    queueCatalogSearch();
   });
   elements.catalogSiteTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-catalog-site]");
     if (!button) return;
     state.catalogSite = button.dataset.catalogSite;
-    renderCatalogResults();
+    queueCatalogSearch(0);
   });
   elements.cancelEdit.addEventListener("click", hideForm);
   elements.novelForm.addEventListener("submit", saveNovelFromForm);
@@ -249,7 +234,7 @@ function createNovel(values) {
     lastViewedAt: values.lastViewedAt || "",
     memo: values.memo || "",
     unread: Boolean(values.unread),
-    updatedAt: new Date().toISOString(),
+    updatedAt: values.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -462,39 +447,137 @@ function render() {
 }
 
 function renderCatalogResults() {
-  const results = getCatalogResults();
-  elements.catalogEmpty.classList.toggle("is-hidden", results.length > 0);
-  elements.catalogResults.innerHTML = results.map(renderCatalogCard).join("");
+  elements.catalogEmpty.textContent = getCatalogStatusText();
+  elements.catalogEmpty.classList.toggle("is-hidden", shouldHideCatalogStatus());
+  elements.catalogResults.innerHTML = state.catalogResults.map(renderCatalogCard).join("");
   elements.catalogSiteTabs.querySelectorAll("[data-catalog-site]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.catalogSite === state.catalogSite);
   });
   bindCatalogActions();
 }
 
-function getCatalogResults() {
-  const keyword = normalizeText(state.catalogSearch);
-  return catalogSeed
-    .filter((item) => {
-      const matchesSite = item.site === state.catalogSite;
-      const searchableText = normalizeText(`${item.title} ${item.site} ${item.tags.join(" ")} ${item.summary}`);
-      return matchesSite && (!keyword || searchableText.includes(keyword));
-    })
-    .slice(0, 8);
+function queueCatalogSearch(delay = 350) {
+  window.clearTimeout(catalogSearchTimer);
+  catalogSearchTimer = window.setTimeout(searchCatalog, delay);
+}
+
+async function searchCatalog() {
+  if (!state.catalogSearch) {
+    state.catalogResults = [];
+    state.catalogError = "";
+    state.catalogHasSearched = false;
+    state.catalogLoading = false;
+    renderCatalogResults();
+    return;
+  }
+
+  if (state.catalogSite !== DEFAULT_SITE) {
+    state.catalogResults = [];
+    state.catalogError = "現在は小説家になろう検索のみ対応しています。";
+    state.catalogHasSearched = true;
+    state.catalogLoading = false;
+    renderCatalogResults();
+    return;
+  }
+
+  state.catalogLoading = true;
+  state.catalogError = "";
+  state.catalogHasSearched = true;
+  renderCatalogResults();
+
+  try {
+    state.catalogResults = await fetchNarouNovels(state.catalogSearch);
+  } catch (error) {
+    state.catalogResults = [];
+    state.catalogError = getCatalogErrorMessage(error);
+  } finally {
+    state.catalogLoading = false;
+    renderCatalogResults();
+  }
+}
+
+async function fetchNarouNovels(keyword) {
+  const response = await fetch(buildNarouApiUrl(keyword), { mode: "cors" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  return parseNarouApiResults(data);
+}
+
+function buildNarouApiUrl(keyword) {
+  const params = new URLSearchParams({
+    out: "json",
+    word: keyword,
+    lim: "20",
+    of: "t-n-w-s-gl-ga",
+  });
+  return `${NAROU_API_URL}?${params.toString()}`;
+}
+
+function parseNarouApiResults(data) {
+  if (!Array.isArray(data)) return [];
+  return data.slice(1).map(normalizeNarouNovel).filter(Boolean);
+}
+
+function normalizeNarouNovel(item) {
+  if (!item?.ncode || !item?.title) return null;
+  return {
+    id: `narou-${item.ncode}`,
+    ncode: item.ncode,
+    title: item.title,
+    writer: item.writer || "作者不明",
+    site: DEFAULT_SITE,
+    url: `https://ncode.syosetu.com/${String(item.ncode).toLowerCase()}/`,
+    latestChapter: toChapterNumber(item.general_all_no),
+    story: item.story || "",
+    lastup: item.general_lastup || "",
+  };
+}
+
+function toIsoDateOrNow(value) {
+  const normalizedValue = String(value || "").replace(/-/g, "/");
+  const timestamp = new Date(normalizedValue).getTime();
+  return Number.isNaN(timestamp) ? new Date().toISOString() : new Date(timestamp).toISOString();
+}
+
+function getCatalogStatusText() {
+  if (!state.catalogSearch) return "キーワードを入力すると小説家になろう公式APIで検索します。";
+  if (state.catalogLoading) return "検索しています...";
+  if (state.catalogError) return state.catalogError;
+  if (state.catalogHasSearched && state.catalogResults.length === 0) return "条件に合う作品はありません。";
+  return "";
+}
+
+function shouldHideCatalogStatus() {
+  if (!state.catalogSearch) return false;
+  return !state.catalogLoading && !state.catalogError && state.catalogResults.length > 0;
+}
+
+function getCatalogErrorMessage(error) {
+  console.warn("Narou API request failed", error);
+  /*
+   * GitHub Pagesは静的ホスティングのため、ブラウザからAPIを直接fetchします。
+   * もし小説家になろうAPI側のCORS設定やブラウザ制約で直接呼び出せない場合は、
+   * Cloudflare Workers / Netlify Functions / GitHub Pagesとは別の軽量APIなどで
+   * `https://api.syosetu.com/novelapi/api/?out=json...` を中継するプロキシを用意し、
+   * このfetch先だけをプロキシURLへ差し替える構成にしてください。
+   */
+  return "小説家になろうAPIを取得できませんでした。CORSまたは通信制限の可能性があります。";
 }
 
 function renderCatalogCard(item) {
   const alreadyAdded = Boolean(findDuplicateNovel(item));
-  const tags = item.tags.map((tag) => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join("");
 
   return `
     <article class="catalog-card">
       <div>
         <p class="ranking-source">${escapeHtml(item.site)}</p>
         <h3 class="novel-title">${escapeHtml(item.title)}</h3>
-        <p class="muted">${escapeHtml(item.summary)}</p>
+        <p class="muted">作者：${escapeHtml(item.writer)}</p>
+        <p class="muted">${escapeHtml(item.story)}</p>
         <div class="meta-row">
-          <span class="badge">更新 ${item.latestChapter}話</span>
-          ${tags}
+          <span class="badge">最終更新 ${escapeHtml(item.lastup || "不明")}</span>
+          <span class="badge">話数 ${item.latestChapter || 0}</span>
+          <a class="text-button" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">作品URL</a>
         </div>
       </div>
       <button class="primary-button catalog-add-button" type="button" data-catalog-id="${item.id}" ${alreadyAdded ? "disabled" : ""}>
@@ -511,7 +594,7 @@ function bindCatalogActions() {
 }
 
 function addCatalogNovel(catalogId) {
-  const item = catalogSeed.find((catalogItem) => catalogItem.id === catalogId);
+  const item = state.catalogResults.find((catalogItem) => catalogItem.id === catalogId);
   if (!item || findDuplicateNovel(item)) return;
 
   const novel = createNovel({
@@ -520,8 +603,9 @@ function addCatalogNovel(catalogId) {
     url: item.url,
     latestChapter: item.latestChapter,
     readChapter: 0,
-    memo: item.summary,
-    unread: true,
+    memo: `作者：${item.writer}\n${item.story}`,
+    unread: item.latestChapter > 0,
+    updatedAt: toIsoDateOrNow(item.lastup),
   });
   state.novels.unshift(novel);
   saveState();
