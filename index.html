@@ -1,702 +1,150 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#141821">
+    <title>Yomikaze - 統合巡回リーダー</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="メインナビゲーション">
+        <div class="brand">
+          <div class="brand-mark">読</div>
+          <div>
+            <h1>Yomikaze</h1>
+            <p>巡回管理ツール</p>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="library" type="button">ライブラリ</button>
+          <button class="nav-item" data-view="updates" type="button">更新</button>
+          <button class="nav-item" data-view="reader" type="button">読書メモ</button>
+          <button class="nav-item" data-view="settings" type="button">設定</button>
+        </nav>
+        <section class="sidebar-panel">
+          <div class="metric">
+            <span>登録作品</span>
+            <strong id="metric-total">0</strong>
+          </div>
+          <div class="metric">
+            <span>未確認更新</span>
+            <strong id="metric-unread">0</strong>
+          </div>
+        </section>
+      </aside>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --acc:#2D6BE4;--acc-lt:#E8EFFD;--acc-dk:#1A4DB5;
-  --sur:var(--color-background-primary);--sur2:var(--color-background-secondary);--sur3:var(--color-background-tertiary);
-  --tx:var(--color-text-primary);--tx2:var(--color-text-secondary);--tx3:var(--color-text-tertiary);
-  --bd:var(--color-border-tertiary);--bd2:var(--color-border-secondary);
-  --r:var(--border-radius-md);--rl:var(--border-radius-lg);
-  --fn:'Noto Sans JP',sans-serif;--fnd:'Zen Kaku Gothic New',sans-serif;
-}
-body{font-family:var(--fn);color:var(--tx);background:transparent;font-size:14px;line-height:1.6;}
-.app{display:flex;height:700px;background:var(--sur3);border-radius:var(--rl);overflow:hidden;border:0.5px solid var(--bd);}
-.sidebar{width:210px;min-width:210px;background:var(--sur);border-right:0.5px solid var(--bd);display:flex;flex-direction:column;}
-.logo{padding:16px 14px 12px;border-bottom:0.5px solid var(--bd);}
-.logo-title{font-family:var(--fnd);font-size:16px;font-weight:700;color:var(--acc);letter-spacing:.02em;}
-.logo-sub{font-size:10px;color:var(--tx3);margin-top:2px;letter-spacing:.05em;}
-.nav{padding:8px 6px;flex:1;overflow-y:auto;}
-.nav-sec{margin-bottom:18px;}
-.nav-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.1em;padding:0 8px;margin-bottom:4px;text-transform:uppercase;}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);cursor:pointer;color:var(--tx2);font-size:13px;transition:all .15s;user-select:none;}
-.nav-item:hover{background:var(--sur2);color:var(--tx);}
-.nav-item.active{background:var(--acc-lt);color:var(--acc);font-weight:500;}
-.nav-item i{font-size:16px;flex-shrink:0;}
-.badge{margin-left:auto;background:var(--acc);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
-.badge.red{background:#E24B4A;}
-.site-chips{padding:8px 8px 0;border-top:0.5px solid var(--bd);}
-.site-chips-lbl{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase;}
-.site-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding-bottom:10px;}
-.site-chip{padding:4px 6px;border-radius:var(--r);border:0.5px solid var(--bd);font-size:10px;font-weight:500;text-align:center;cursor:pointer;transition:all .15s;color:var(--tx2);background:var(--sur2);}
-.site-chip:hover{border-color:var(--acc);color:var(--acc);}
-.site-chip.on{background:var(--acc-lt);border-color:var(--acc);color:var(--acc);font-weight:700;}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.topbar{height:50px;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--sur);border-bottom:0.5px solid var(--bd);flex-shrink:0;}
-.topbar-title{font-family:var(--fnd);font-size:14px;font-weight:700;flex:1;}
-.search-box{display:flex;align-items:center;gap:6px;background:var(--sur2);border:0.5px solid var(--bd);border-radius:var(--r);padding:5px 10px;width:190px;}
-.search-box i{font-size:14px;color:var(--tx3);}
-.search-box input{border:none;background:transparent;outline:none;font-size:13px;color:var(--tx);width:100%;font-family:var(--fn);}
-.search-box input::placeholder{color:var(--tx3);}
-.btn-icon{width:32px;height:32px;border-radius:var(--r);border:0.5px solid var(--bd);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2);transition:all .15s;}
-.btn-icon:hover{background:var(--sur2);color:var(--tx);}
-.btn-icon i{font-size:15px;}
-.btn-primary{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--acc);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--fn);transition:background .15s;}
-.btn-primary:hover{background:var(--acc-dk);}
-.btn-primary i{font-size:13px;}
-.content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
-.tab-bar{display:flex;padding:0 14px;background:var(--sur);border-bottom:0.5px solid var(--bd);flex-shrink:0;overflow-x:auto;}
-.tab{padding:9px 14px;font-size:12px;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
-.tab:hover{color:var(--tx);}
-.tab.active{color:var(--acc);border-bottom-color:var(--acc);font-weight:500;}
-.panel{display:none;flex:1;overflow-y:auto;padding:14px;flex-direction:column;gap:9px;}
-.panel.active{display:flex;}
-.panel::-webkit-scrollbar{width:4px;}
-.panel::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Cross-site novel watchlist</p>
+            <h2 id="view-title">ライブラリ</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="check-all" type="button">RSS確認</button>
+            <button class="primary-button" id="open-add-dialog" type="button">URL登録</button>
+          </div>
+        </header>
 
-/* NOTIF */
-.notif-card{display:flex;gap:10px;padding:11px 13px;background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);align-items:flex-start;cursor:pointer;transition:border-color .15s;}
-.notif-card:hover{border-color:var(--bd2);}
-.notif-card.unread{border-left:3px solid var(--acc);}
-.notif-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex-shrink:0;margin-top:5px;}
-.notif-dot.gray{background:var(--tx3);}
-.notif-body{flex:1;min-width:0;}
-.notif-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.notif-meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx3);}
-.site-tag{padding:1px 6px;border-radius:9px;font-size:10px;font-weight:700;}
-.tag-narou{background:#FFF0E0;color:#C05C00;}
-.tag-kakuyomu{background:#FFF0F0;color:#CC0000;}
-.tag-hameln{background:#F0F0FF;color:#4040CC;}
-.tag-arcadia{background:#E0FFE0;color:#008800;}
-.tag-akatsuki{background:#FFE0FF;color:#880088;}
-.tag-novelup{background:#E0F8FF;color:#0066AA;}
-.tag-pixiv{background:#FFE8F0;color:#CC4477;}
-.notif-action{display:flex;gap:5px;margin-top:7px;}
-.btn-sm{padding:3px 9px;border-radius:var(--r);border:0.5px solid var(--bd);background:transparent;font-size:11px;font-family:var(--fn);cursor:pointer;color:var(--tx2);transition:all .15s;}
-.btn-sm:hover{background:var(--sur2);}
-.btn-sm.accent{background:var(--acc);color:#fff;border-color:var(--acc);}
-.btn-sm.accent:hover{background:var(--acc-dk);}
-.filter-row{display:flex;gap:6px;align-items:center;flex-shrink:0;margin-bottom:2px;}
-.filter-sel{padding:4px 8px;border-radius:var(--r);border:0.5px solid var(--bd);background:var(--sur);color:var(--tx);font-size:12px;font-family:var(--fn);outline:none;cursor:pointer;}
-.notif-clear{font-size:11px;color:var(--acc);cursor:pointer;border:none;background:none;font-family:var(--fn);margin-left:auto;}
-
-/* RANKING */
-.rank-header{display:flex;gap:6px;align-items:center;flex-shrink:0;margin-bottom:2px;flex-wrap:wrap;}
-.rank-type-btn{padding:5px 12px;border-radius:20px;border:0.5px solid var(--bd);background:var(--sur);color:var(--tx2);font-size:12px;font-family:var(--fn);cursor:pointer;transition:all .15s;}
-.rank-type-btn.active{background:var(--acc);color:#fff;border-color:var(--acc);}
-.rank-genre-sel{padding:4px 8px;border-radius:var(--r);border:0.5px solid var(--bd);background:var(--sur);color:var(--tx);font-size:12px;font-family:var(--fn);outline:none;}
-.api-badge{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:9px;background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:700;margin-left:auto;}
-.api-badge i{font-size:11px;}
-.rank-card{display:flex;gap:10px;padding:10px 13px;background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);align-items:center;cursor:pointer;transition:border-color .15s;}
-.rank-card:hover{border-color:var(--bd2);}
-.rank-num{font-family:var(--fnd);font-size:20px;font-weight:700;width:32px;text-align:center;flex-shrink:0;color:var(--tx3);}
-.rank-num.top1{color:#C8860A;}
-.rank-num.top2{color:#888780;}
-.rank-num.top3{color:#854F0B;}
-.rank-info{flex:1;min-width:0;}
-.rank-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rank-author{font-size:11px;color:var(--tx3);margin-bottom:4px;}
-.rank-tags{display:flex;flex-wrap:wrap;gap:4px;}
-.genre-tag{padding:1px 6px;border-radius:9px;font-size:10px;background:var(--sur2);border:0.5px solid var(--bd);color:var(--tx2);}
-.rank-stats{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-.stat-val{font-size:13px;font-weight:500;color:var(--acc);}
-.stat-lbl{font-size:10px;color:var(--tx3);}
-.open-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--r);border:0.5px solid var(--acc);background:transparent;color:var(--acc);font-size:11px;font-family:var(--fn);cursor:pointer;transition:all .15s;white-space:nowrap;}
-.open-btn:hover{background:var(--acc-lt);}
-.loading-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--tx3);font-size:13px;}
-
-/* SEARCH */
-.search-panel-header{display:flex;flex-direction:column;gap:8px;flex-shrink:0;margin-bottom:2px;}
-.big-search{display:flex;gap:6px;}
-.big-search input{flex:1;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--bd2);background:var(--sur);color:var(--tx);font-size:14px;font-family:var(--fn);outline:none;}
-.big-search input:focus{border-color:var(--acc);}
-.big-search button{padding:8px 16px;border-radius:var(--r);background:var(--acc);color:#fff;border:none;font-size:13px;font-family:var(--fn);cursor:pointer;font-weight:500;}
-.search-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
-.search-result-card{display:flex;gap:10px;padding:10px 13px;background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);cursor:pointer;transition:border-color .15s;}
-.search-result-card:hover{border-color:var(--bd2);}
-.src-cover{width:44px;height:58px;background:var(--sur2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:0.5px solid var(--bd);}
-.src-info{flex:1;min-width:0;}
-.src-title{font-size:13px;font-weight:500;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
-.src-author{font-size:11px;color:var(--tx3);margin-bottom:4px;}
-.src-desc{font-size:11px;color:var(--tx2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:5px;line-height:1.5;}
-.src-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.src-stat{font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:2px;}
-.src-stat i{font-size:11px;}
-.add-fav-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--r);border:0.5px solid var(--bd);background:transparent;color:var(--tx2);font-size:11px;font-family:var(--fn);cursor:pointer;transition:all .15s;flex-shrink:0;align-self:flex-start;}
-.add-fav-btn:hover{border-color:var(--acc);color:var(--acc);}
-.add-fav-btn.added{background:var(--acc-lt);color:var(--acc);border-color:var(--acc);}
-.site-filter-btn{padding:4px 10px;border-radius:14px;border:0.5px solid var(--bd);background:var(--sur);color:var(--tx2);font-size:11px;cursor:pointer;transition:all .15s;}
-.site-filter-btn.active{background:var(--acc-lt);border-color:var(--acc);color:var(--acc);font-weight:500;}
-.results-summary{font-size:12px;color:var(--tx3);}
-.no-results{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;color:var(--tx3);gap:8px;text-align:center;}
-.no-results i{font-size:32px;}
-
-/* FAV / READING / RSS (kept from v1) */
-.fav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px;}
-.fav-card{background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);padding:10px;cursor:pointer;transition:border-color .15s;position:relative;}
-.fav-card:hover{border-color:var(--bd2);}
-.fav-cover{width:100%;height:80px;background:var(--sur2);border-radius:var(--r);margin-bottom:8px;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;overflow:hidden;}
-.fav-cover-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--bd);}
-.fav-progress{height:100%;background:var(--acc);border-radius:2px;}
-.fav-title{font-size:11px;font-weight:700;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.fav-sub{font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:4px;}
-.fav-new{position:absolute;top:6px;right:6px;background:#E24B4A;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:7px;}
-.reading-card{display:flex;gap:12px;padding:12px 14px;background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);align-items:flex-start;cursor:pointer;transition:border-color .15s;}
-.reading-card:hover{border-color:var(--bd2);}
-.reading-icon{font-size:28px;flex-shrink:0;line-height:1;}
-.reading-info{flex:1;min-width:0;}
-.reading-title{font-size:13px;font-weight:700;margin-bottom:3px;}
-.reading-chapter{font-size:12px;color:var(--tx2);margin-bottom:7px;}
-.progress-bar{height:3px;background:var(--sur2);border-radius:2px;overflow:hidden;margin-bottom:3px;}
-.progress-fill{height:100%;background:var(--acc);border-radius:2px;}
-.progress-text{font-size:10px;color:var(--tx3);display:flex;justify-content:space-between;}
-.reading-actions{display:flex;align-items:flex-start;gap:5px;flex-shrink:0;}
-.rss-card{display:flex;gap:10px;padding:11px 13px;background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd);align-items:center;cursor:pointer;transition:border-color .15s;}
-.rss-card:hover{border-color:var(--bd2);}
-.rss-icon{width:34px;height:34px;border-radius:var(--r);background:var(--sur2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;color:#E07B00;}
-.rss-body{flex:1;min-width:0;}
-.rss-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rss-meta{font-size:11px;color:var(--tx3);}
-.rss-status{display:flex;align-items:center;gap:3px;font-size:11px;padding:3px 7px;border-radius:9px;}
-.rss-status.ok{background:#EAF3DE;color:#3B6D11;}
-.rss-status.err{background:#FCEBEB;color:#A32D2D;}
-.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:100;border-radius:var(--rl);}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--sur);border-radius:var(--rl);border:0.5px solid var(--bd2);padding:18px;width:360px;max-width:90%;}
-.modal-title{font-family:var(--fnd);font-size:14px;font-weight:700;margin-bottom:12px;}
-.field{margin-bottom:10px;}
-.field-label{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase;}
-.field input,.field select{width:100%;padding:7px 9px;border-radius:var(--r);border:0.5px solid var(--bd2);background:var(--sur2);color:var(--tx);font-size:13px;font-family:var(--fn);outline:none;}
-.field input:focus,.field select:focus{border-color:var(--acc);}
-.modal-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:14px;}
-.btn-cancel{padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--bd);background:transparent;font-size:13px;font-family:var(--fn);cursor:pointer;color:var(--tx2);}
-.toast{position:absolute;bottom:14px;right:14px;background:var(--tx);color:var(--sur);padding:9px 14px;border-radius:var(--r);font-size:13px;opacity:0;transform:translateY(6px);transition:all .25s;z-index:200;pointer-events:none;}
-.toast.show{opacity:1;transform:translateY(0);}
-.webview-panel{display:none;flex-direction:column;flex:1;overflow:hidden;}
-.webview-panel.active{display:flex;}
-.webview-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--sur);border-bottom:0.5px solid var(--bd);flex-shrink:0;}
-.webview-url{flex:1;font-size:11px;color:var(--tx3);background:var(--sur2);border:0.5px solid var(--bd);border-radius:var(--r);padding:4px 10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-.webview-frame{flex:1;border:none;background:var(--sur2);}
-.webview-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx3);}
-.webview-placeholder i{font-size:40px;}
-.webview-placeholder p{font-size:13px;text-align:center;max-width:260px;line-height:1.6;}
-.site-quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px;margin-top:14px;width:100%;}
-.site-quick-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 8px;border-radius:var(--rl);border:0.5px solid var(--bd);background:var(--sur);cursor:pointer;transition:border-color .15s;font-size:11px;color:var(--tx2);}
-.site-quick-btn:hover{border-color:var(--acc);color:var(--acc);}
-.site-quick-btn i{font-size:22px;}
-</style>
-
-<div class="app" style="position:relative;">
-  <div class="sidebar">
-    <div class="logo">
-      <div class="logo-title">📚 NovReader</div>
-      <div class="logo-sub">統合小説巡回ツール</div>
-    </div>
-    <div class="nav">
-      <div class="nav-sec">
-        <div class="nav-lbl">メイン</div>
-        <div class="nav-item" onclick="switchNav(this,'notif')"><i class="ti ti-bell" aria-hidden="true"></i>更新通知<span class="badge red">7</span></div>
-        <div class="nav-item" onclick="switchNav(this,'fav')"><i class="ti ti-heart" aria-hidden="true"></i>お気に入り</div>
-        <div class="nav-item" onclick="switchNav(this,'reading')"><i class="ti ti-bookmark" aria-hidden="true"></i>読了位置</div>
-        <div class="nav-item" onclick="switchNav(this,'rss')"><i class="ti ti-rss" aria-hidden="true"></i>RSS監視<span class="badge">12</span></div>
-      </div>
-      <div class="nav-sec">
-        <div class="nav-lbl">新機能</div>
-        <div class="nav-item active" onclick="switchNav(this,'ranking')"><i class="ti ti-trophy" aria-hidden="true"></i>ランキング</div>
-        <div class="nav-item" onclick="switchNav(this,'search')"><i class="ti ti-search" aria-hidden="true"></i>作品を探す</div>
-        <div class="nav-item" onclick="switchNav(this,'browse')"><i class="ti ti-world" aria-hidden="true"></i>サイトを開く</div>
-      </div>
-      <div class="nav-sec">
-        <div class="nav-lbl">管理</div>
-        <div class="nav-item" onclick="switchNav(this,'urls')"><i class="ti ti-link" aria-hidden="true"></i>URL登録</div>
-        <div class="nav-item" onclick="showToast('設定を開きます')"><i class="ti ti-settings" aria-hidden="true"></i>設定</div>
-      </div>
-    </div>
-    <div class="site-chips">
-      <div class="site-chips-lbl">サイト絞込</div>
-      <div class="site-grid">
-        <div class="site-chip on" onclick="toggleChip(this)">なろう</div>
-        <div class="site-chip on" onclick="toggleChip(this)">カクヨム</div>
-        <div class="site-chip on" onclick="toggleChip(this)">ハーメルン</div>
-        <div class="site-chip" onclick="toggleChip(this)">Arcadia</div>
-        <div class="site-chip" onclick="toggleChip(this)">暁</div>
-        <div class="site-chip on" onclick="toggleChip(this)">ノベルアップ+</div>
-        <div class="site-chip" onclick="toggleChip(this)">pixiv小説</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="main">
-    <div class="topbar">
-      <div class="topbar-title" id="topbar-title">ランキング</div>
-      <div class="search-box">
-        <i class="ti ti-search" aria-hidden="true"></i>
-        <input type="text" placeholder="タイトル・作者を検索…" id="global-search">
-      </div>
-      <button class="btn-icon" title="更新" onclick="showToast('最新情報を取得中…')"><i class="ti ti-refresh" aria-hidden="true"></i></button>
-      <button class="btn-primary" onclick="openModal()"><i class="ti ti-plus" aria-hidden="true"></i>URL追加</button>
-    </div>
-
-    <div class="content">
-
-      <!-- RANKING PANEL -->
-      <div id="panel-ranking" class="panel active">
-        <div class="rank-header">
-          <button class="rank-type-btn active" onclick="setRankType(this,'daily')">日間</button>
-          <button class="rank-type-btn" onclick="setRankType(this,'weekly')">週間</button>
-          <button class="rank-type-btn" onclick="setRankType(this,'monthly')">月間</button>
-          <button class="rank-type-btn" onclick="setRankType(this,'quarter')">四半期</button>
-          <select class="rank-genre-sel" id="rank-genre" onchange="renderRanking()">
-            <option value="">すべてのジャンル</option>
-            <option value="異世界転生">異世界転生</option>
-            <option value="異世界転移">異世界転移</option>
-            <option value="ファンタジー">ファンタジー</option>
-            <option value="現代ファンタジー">現代ファンタジー</option>
-            <option value="SF">SF</option>
-            <option value="恋愛">恋愛</option>
-            <option value="歴史・時代">歴史・時代</option>
-            <option value="ホラー">ホラー</option>
+        <section class="toolbar" data-view-section="library">
+          <label class="search-box">
+            <span>検索</span>
+            <input id="search-input" type="search" placeholder="タイトル、サイト、タグで検索">
+          </label>
+          <select id="filter-site" aria-label="サイトで絞り込み">
+            <option value="">すべてのサイト</option>
           </select>
-          <div class="api-badge"><i class="ti ti-plug-connected" aria-hidden="true"></i>なろう公式API</div>
-        </div>
-        <div id="rank-list"></div>
-      </div>
+          <select id="filter-status" aria-label="状態で絞り込み">
+            <option value="">すべての状態</option>
+            <option value="reading">読書中</option>
+            <option value="queued">あとで読む</option>
+            <option value="finished">読了</option>
+            <option value="paused">保留</option>
+          </select>
+        </section>
 
-      <!-- SEARCH PANEL -->
-      <div id="panel-search" class="panel">
-        <div class="search-panel-header">
-          <div class="big-search">
-            <input type="text" id="search-keyword" placeholder="キーワード・タイトル・作者名…" onkeydown="if(event.key==='Enter')doSearch()">
-            <button onclick="doSearch()"><i class="ti ti-search" aria-hidden="true"></i> 検索</button>
+        <section class="view active" id="library-view" data-view-section="library">
+          <div class="empty-state" id="empty-library">
+            <h3>巡回したい作品URLを登録してください</h3>
+            <p>本文の再配信ではなく、原典サイトへのリンク、RSS監視、読了位置、メモを管理します。</p>
+            <button class="primary-button" data-action="open-add" type="button">最初のURLを登録</button>
           </div>
-          <div class="search-filters">
-            <span style="font-size:11px;color:var(--tx3);">サイト：</span>
-            <button class="site-filter-btn active" onclick="toggleSiteFilter(this,'narou')">なろう<span style="font-size:9px;margin-left:2px;background:#FFF0E0;color:#C05C00;padding:0 3px;border-radius:3px;">API</span></button>
-            <button class="site-filter-btn active" onclick="toggleSiteFilter(this,'kakuyomu')">カクヨム</button>
-            <button class="site-filter-btn" onclick="toggleSiteFilter(this,'hameln')">ハーメルン</button>
-            <button class="site-filter-btn" onclick="toggleSiteFilter(this,'novelup')">ノベルアップ+</button>
-            <select class="filter-sel" id="search-genre-sel">
-              <option value="">ジャンル：すべて</option>
-              <option value="異世界転生">異世界転生</option>
-              <option value="ファンタジー">ファンタジー</option>
-              <option value="恋愛">恋愛</option>
-              <option value="SF">SF</option>
-              <option value="ホラー">ホラー</option>
-            </select>
-            <select class="filter-sel">
-              <option>並び順：ポイント順</option>
-              <option>新着順</option>
-              <option>ブックマーク数順</option>
-              <option>レビュー数順</option>
-            </select>
+          <div class="book-grid" id="book-grid"></div>
+        </section>
+
+        <section class="view" id="updates-view">
+          <div class="section-heading">
+            <h3>更新フィード</h3>
+            <p>RSSまたはAtom URLを登録した作品の最新状態を確認します。</p>
           </div>
-        </div>
-        <div id="search-results-summary" style="font-size:12px;color:var(--tx3);"></div>
-        <div id="search-results"></div>
-      </div>
+          <div class="update-list" id="update-list"></div>
+        </section>
 
-      <!-- BROWSE PANEL -->
-      <div id="panel-browse" class="panel">
-        <div class="webview-placeholder" id="browse-placeholder">
-          <i class="ti ti-world" aria-hidden="true"></i>
-          <p>サイトを選んでランキングや検索ページをアプリ内で閲覧できます<br><span style="font-size:10px;">(ブラウザ連携モード)</span></p>
-          <div class="site-quick-grid">
-            <div class="site-quick-btn" onclick="openSite('narou','https://yomou.syosetu.com/rank/list/type/monthly_total/')"><i class="ti ti-trophy" aria-hidden="true"></i>なろうランキング</div>
-            <div class="site-quick-btn" onclick="openSite('kakuyomu','https://kakuyomu.jp/rankings')"><i class="ti ti-trophy" aria-hidden="true"></i>カクヨムランキング</div>
-            <div class="site-quick-btn" onclick="openSite('hameln','https://syosetu.org/rank/list/')"><i class="ti ti-trophy" aria-hidden="true"></i>ハーメルンランキング</div>
-            <div class="site-quick-btn" onclick="openSite('arcadia','https://www.mai-net.net/rank/')"><i class="ti ti-trophy" aria-hidden="true"></i>Arcadiaランキング</div>
-            <div class="site-quick-btn" onclick="openSite('akatsuki','https://www.akatsuki-novels.com/ranking/')"><i class="ti ti-trophy" aria-hidden="true"></i>暁ランキング</div>
-            <div class="site-quick-btn" onclick="openSite('novelup','https://novelup.plus/ranking')"><i class="ti ti-trophy" aria-hidden="true"></i>ノベルアップ+ランキング</div>
-            <div class="site-quick-btn" onclick="openSite('pixiv','https://www.pixiv.net/novel/ranking.php')"><i class="ti ti-trophy" aria-hidden="true"></i>pixiv小説ランキング</div>
-            <div class="site-quick-btn" onclick="openSite('narou','https://syosetu.com/')"><i class="ti ti-search" aria-hidden="true"></i>なろう検索</div>
-            <div class="site-quick-btn" onclick="openSite('kakuyomu','https://kakuyomu.jp/search')"><i class="ti ti-search" aria-hidden="true"></i>カクヨム検索</div>
+        <section class="view" id="reader-view">
+          <div class="reader-layout">
+            <div class="reader-list" id="reader-list"></div>
+            <form class="reader-detail" id="reader-form">
+              <div class="section-heading">
+                <h3 id="reader-title">作品を選択</h3>
+                <p id="reader-subtitle">読了位置とメモは端末内に保存されます。</p>
+              </div>
+              <label>
+                読了位置
+                <input id="reader-position" type="text" placeholder="例: 第12話 / 42%">
+              </label>
+              <label>
+                読書メモ
+                <textarea id="reader-note" rows="8" placeholder="伏線、感想、次に読む場所など"></textarea>
+              </label>
+              <div class="form-row">
+                <button class="primary-button" type="submit">保存</button>
+                <button class="ghost-button" id="reader-open-original" type="button">原典を開く</button>
+              </div>
+            </form>
           </div>
-        </div>
-        <div class="webview-panel" id="browse-webview">
-          <div class="webview-bar">
-            <button class="btn-icon" onclick="closeBrowse()" title="戻る"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
-            <div class="webview-url" id="webview-url-bar"></div>
-            <button class="btn-icon" onclick="showToast('外部ブラウザで開きます')" title="外部で開く"><i class="ti ti-external-link" aria-hidden="true"></i></button>
-          </div>
-          <div class="webview-placeholder" style="flex:1;">
-            <i class="ti ti-browser" aria-hidden="true" style="font-size:36px;"></i>
-            <p id="webview-msg" style="font-size:13px;"></p>
-            <button class="btn-sm accent" onclick="showToast('外部ブラウザで開きます')" style="margin-top:6px;">ブラウザで開く <i class="ti ti-external-link" style="font-size:11px;"></i></button>
-          </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- NOTIFICATION PANEL -->
-      <div id="panel-notif" class="panel">
-        <div class="filter-row">
-          <select class="filter-sel"><option>すべて</option><option>未読のみ</option><option>既読のみ</option></select>
-          <select class="filter-sel"><option>新着順</option><option>タイトル順</option></select>
-          <button class="notif-clear" onclick="clearAll()">すべて既読にする</button>
-        </div>
-        <div id="notif-list"></div>
-      </div>
-
-      <!-- FAV PANEL -->
-      <div id="panel-fav" class="panel">
-        <div class="filter-row">
-          <select class="filter-sel"><option>すべて</option><option>更新あり</option><option>完結済み</option></select>
-          <select class="filter-sel"><option>追加順</option><option>更新順</option></select>
-        </div>
-        <div class="fav-grid" id="fav-grid"></div>
-      </div>
-
-      <!-- READING PANEL -->
-      <div id="panel-reading" class="panel">
-        <div id="reading-list"></div>
-      </div>
-
-      <!-- RSS PANEL -->
-      <div id="panel-rss" class="panel">
-        <div id="rss-list"></div>
-      </div>
-
-      <!-- URL PANEL -->
-      <div id="panel-urls" class="panel">
-        <div id="url-list"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- URL ADD MODAL -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal">
-      <div class="modal-title"><i class="ti ti-link" aria-hidden="true"></i> 作品URLを登録</div>
-      <div class="field"><div class="field-label">URL</div><input type="url" id="url-input" placeholder="https://ncode.syosetu.com/..."></div>
-      <div class="field"><div class="field-label">カテゴリ</div><select><option>異世界転生</option><option>ファンタジー</option><option>恋愛</option><option>SF</option><option>その他</option></select></div>
-      <div class="field"><div class="field-label">通知設定</div><select><option>即時通知</option><option>1時間ごと</option><option>6時間ごと</option><option>通知しない</option></select></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-        <button class="btn-primary" onclick="addUrl()"><i class="ti ti-check" aria-hidden="true"></i> 登録する</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-</div>
-
-<script>
-const SITES={narou:{label:'なろう',cls:'tag-narou'},kakuyomu:{label:'カクヨム',cls:'tag-kakuyomu'},hameln:{label:'ハーメルン',cls:'tag-hameln'},arcadia:{label:'Arcadia',cls:'tag-arcadia'},akatsuki:{label:'暁',cls:'tag-akatsuki'},novelup:{label:'ノベルアップ+',cls:'tag-novelup'},pixiv:{label:'pixiv小説',cls:'tag-pixiv'}};
-function siteTag(s){const d=SITES[s];return`<span class="site-tag ${d.cls}">${d.label}</span>`;}
-
-const RANK_DATA={
-  daily:[
-    {rank:1,title:'最強チート魔法師の英雄譚〜二度転生した少年は、前世の記憶で最強を目指す〜',author:'橘由華',genre:'異世界転生',tags:['チート','転生','魔法'],points:'24,810',bookmarks:'18,204',status:'連載中',emoji:'🧙'},
-    {rank:2,title:'ゴブリンスレイヤー外伝：年齢は剣の錆',author:'蝸牛くも',genre:'ファンタジー',tags:['剣と魔法','ダーク'],points:'19,332',bookmarks:'14,007',status:'連載中',emoji:'⚔️'},
-    {rank:3,title:'悪役令嬢は隣国の王子に溺愛される',author:'花山あかり',genre:'恋愛',tags:['乙女ゲー','悪役令嬢','溺愛'],points:'17,005',bookmarks:'21,883',status:'完結',emoji:'👑'},
-    {rank:4,title:'【書籍化決定】転生勇者は復讐を誓う',author:'白石新',genre:'異世界転生',tags:['復讐','転生','ダーク'],points:'14,220',bookmarks:'9,441',status:'連載中',emoji:'🗡️'},
-    {rank:5,title:'異世界でのんびり農家をやりたかった話',author:'田中一郎',genre:'ファンタジー',tags:['スローライフ','農業','ほのぼの'],points:'12,888',bookmarks:'8,901',status:'連載中',emoji:'🌾'},
-    {rank:6,title:'魔王城でおやすみ 二次創作SS集',author:'夢野つくし',genre:'現代ファンタジー',tags:['コメディ','短編'],points:'10,544',bookmarks:'5,332',status:'連載中',emoji:'🌙'},
-    {rank:7,title:'剣聖の娘は最弱と呼ばれたが',author:'鈴木花子',genre:'ファンタジー',tags:['成長','逆転','感動'],points:'9,771',bookmarks:'7,114',status:'連載中',emoji:'🌸'},
-    {rank:8,title:'AIと暮らす2099年の日常',author:'宇宙人A',genre:'SF',tags:['AI','近未来','日常'],points:'8,990',bookmarks:'6,220',status:'連載中',emoji:'🤖'},
-    {rank:9,title:'俺だけが知っている終末の秘密',author:'謎の作者',genre:'SF',tags:['ループ','ミステリ','SF'],points:'8,441',bookmarks:'4,880',status:'連載中',emoji:'🔮'},
-    {rank:10,title:'幽霊になった僕の初恋',author:'月野しずく',genre:'恋愛',tags:['ファンタジー恋愛','泣ける'],points:'7,990',bookmarks:'5,501',status:'完結',emoji:'👻'},
-  ]
-};
-RANK_DATA.weekly=RANK_DATA.daily.map((r,i)=>({...r,rank:i+1,points:(parseInt(r.points.replace(/,/g,''))*7).toLocaleString(),bookmarks:r.bookmarks}));
-RANK_DATA.monthly=RANK_DATA.daily.map((r,i)=>({...r,rank:i+1,points:(parseInt(r.points.replace(/,/g,''))*28).toLocaleString()}));
-RANK_DATA.quarter=RANK_DATA.daily.map((r,i)=>({...r,rank:i+1,points:(parseInt(r.points.replace(/,/g,''))*84).toLocaleString()}));
-
-const SEARCH_DATA=[
-  {title:'最強チート魔法師の英雄譚',author:'橘由華',site:'narou',genre:'異世界転生',tags:['チート','転生'],desc:'前世の記憶を持つ少年が、二度目の人生で最強の魔法師を目指す異世界ファンタジー。圧倒的な力と仲間との絆が見どころ。',points:'24,810',bookmarks:'18,204',chapters:412,emoji:'🧙',added:false},
-  {title:'悪役令嬢は隣国の王子に溺愛される',author:'花山あかり',site:'kakuyomu',genre:'恋愛',tags:['乙女ゲー','悪役令嬢'],desc:'乙女ゲームの悪役令嬢に転生した主人公。破滅ルートを回避しようとするが、隣国の王子が予期せぬ行動に出て…。',points:'17,005',bookmarks:'21,883',chapters:201,emoji:'👑',added:false},
-  {title:'ゴブリンスレイヤー外伝：年齢は剣の錆',author:'蝸牛くも',site:'narou',genre:'ファンタジー',tags:['剣と魔法','ダーク'],desc:'若き冒険者たちが危険なダンジョンに挑む。甘くない世界観と緻密な戦闘描写が魅力の本格ファンタジー。',points:'19,332',bookmarks:'14,007',chapters:88,emoji:'⚔️',added:false},
-  {title:'異世界でのんびり農家をやりたかった話',author:'田中一郎',site:'narou',genre:'ファンタジー',tags:['スローライフ','農業'],desc:'最強の魔法師として異世界転生したのに、本人は農業がしたいだけ。ゆるくて癒されるスローライフファンタジー。',points:'12,888',bookmarks:'8,901',chapters:55,emoji:'🌾',added:false},
-  {title:'AIと暮らす2099年の日常',author:'宇宙人A',site:'kakuyomu',genre:'SF',tags:['AI','近未来'],desc:'汎用AIが普及した2099年。人間とAIの共存をユーモラスかつ哲学的に描く近未来SF日常系。',points:'8,990',bookmarks:'6,220',chapters:144,emoji:'🤖',added:false},
-  {title:'幽霊になった僕の初恋',author:'月野しずく',site:'hameln',genre:'恋愛',tags:['ファンタジー恋愛','泣ける'],desc:'突然幽霊になってしまった主人公が、自分の死の謎を解きながら初恋の相手と再会する切ない恋愛ファンタジー。',points:'7,990',bookmarks:'5,501',chapters:33,emoji:'👻',added:false},
-];
-
-let currentRankType='daily';
-let activeSiteFilters=new Set(['narou','kakuyomu']);
-
-function renderRanking(){
-  const genre=document.getElementById('rank-genre').value;
-  let data=RANK_DATA[currentRankType];
-  if(genre)data=data.filter(r=>r.genre===genre||r.tags.includes(genre));
-  const list=document.getElementById('rank-list');
-  list.innerHTML='';
-  if(!data.length){list.innerHTML='<div class="no-results"><i class="ti ti-mood-empty"></i><p>該当作品なし</p></div>';return;}
-  data.forEach(r=>{
-    const nc=r.rank===1?'top1':r.rank===2?'top2':r.rank===3?'top3':'';
-    const d=document.createElement('div');
-    d.className='rank-card';
-    d.innerHTML=`
-      <div class="rank-num ${nc}">${r.rank}</div>
-      <div style="font-size:24px;flex-shrink:0">${r.emoji}</div>
-      <div class="rank-info">
-        <div class="rank-title">${r.title}</div>
-        <div class="rank-author">${r.author} &nbsp;·&nbsp; ${r.genre}</div>
-        <div class="rank-tags">
-          ${r.tags.map(t=>`<span class="genre-tag">${t}</span>`).join('')}
-          <span class="genre-tag" style="background:var(--acc-lt);color:var(--acc);border-color:var(--acc)">${r.status}</span>
-        </div>
-      </div>
-      <div class="rank-stats">
-        <div><div class="stat-val">${r.points}</div><div class="stat-lbl">ポイント</div></div>
-        <div><div class="stat-val" style="font-size:11px;color:var(--tx2)">${r.bookmarks}</div><div class="stat-lbl">ブックマーク</div></div>
-        <div style="display:flex;gap:4px;margin-top:4px;">
-          <button class="open-btn" onclick="showToast('ブラウザで開きます')"><i class="ti ti-external-link" style="font-size:11px"></i>読む</button>
-          <button class="btn-sm" onclick="addToFavFromRank(this,'${r.emoji}','${r.title.replace(/'/g,"\\'")}')"><i class="ti ti-heart" style="font-size:11px"></i></button>
-        </div>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-function setRankType(btn,type){
-  document.querySelectorAll('.rank-type-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentRankType=type;
-  renderRanking();
-}
-
-function addToFavFromRank(btn,emoji,title){
-  btn.innerHTML='<i class="ti ti-check" style="font-size:11px"></i>';
-  btn.style.background='var(--acc-lt)';
-  btn.style.color='var(--acc)';
-  showToast(`「${title.substring(0,15)}…」をお気に入りに追加しました`);
-}
-
-function toggleSiteFilter(btn,site){
-  btn.classList.toggle('active');
-  if(activeSiteFilters.has(site))activeSiteFilters.delete(site);
-  else activeSiteFilters.add(site);
-}
-
-function doSearch(){
-  const kw=document.getElementById('search-keyword').value.trim().toLowerCase();
-  const genre=document.getElementById('search-genre-sel').value;
-  const results=document.getElementById('search-results');
-  const summary=document.getElementById('search-results-summary');
-  results.innerHTML='';
-  let data=SEARCH_DATA;
-  if(kw)data=data.filter(r=>r.title.toLowerCase().includes(kw)||r.author.toLowerCase().includes(kw)||r.tags.some(t=>t.toLowerCase().includes(kw)));
-  if(genre)data=data.filter(r=>r.genre===genre||r.tags.includes(genre));
-  if(activeSiteFilters.size>0)data=data.filter(r=>activeSiteFilters.has(r.site));
-  summary.textContent=kw||genre?`${data.length}件ヒット`:'';
-  if(!data.length){
-    results.innerHTML=`<div class="no-results"><i class="ti ti-search-off" aria-hidden="true"></i><p>${kw?`「${kw}」に一致する作品が見つかりませんでした`:'検索キーワードを入力してください'}</p></div>`;
-    return;
-  }
-  data.forEach((r,idx)=>{
-    const d=document.createElement('div');
-    d.className='search-result-card';
-    d.innerHTML=`
-      <div class="src-cover">${r.emoji}</div>
-      <div class="src-info">
-        <div class="src-title">${r.title}</div>
-        <div class="src-author">${r.author} &nbsp;${siteTag(r.site)}</div>
-        <div class="src-desc">${r.desc}</div>
-        <div class="src-meta">
-          <span class="genre-tag">${r.genre}</span>
-          ${r.tags.map(t=>`<span class="genre-tag">${t}</span>`).join('')}
-          <span class="src-stat"><i class="ti ti-star" aria-hidden="true"></i>${r.points}</span>
-          <span class="src-stat"><i class="ti ti-bookmark" aria-hidden="true"></i>${r.bookmarks}</span>
-          <span class="src-stat"><i class="ti ti-list" aria-hidden="true"></i>${r.chapters}話</span>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;align-self:flex-start;">
-        <button class="open-btn" onclick="showToast('ブラウザで開きます')"><i class="ti ti-external-link" style="font-size:11px"></i>読む</button>
-        <button class="add-fav-btn ${r.added?'added':''}" id="fav-btn-${idx}" onclick="toggleFavSearch(${idx},this)">
-          <i class="ti ti-${r.added?'check':'heart'}" style="font-size:11px"></i>${r.added?'追加済み':'お気に入り'}
-        </button>
-      </div>`;
-    results.appendChild(d);
-  });
-}
-
-function toggleFavSearch(idx,btn){
-  SEARCH_DATA[idx].added=!SEARCH_DATA[idx].added;
-  const added=SEARCH_DATA[idx].added;
-  btn.className='add-fav-btn'+(added?' added':'');
-  btn.innerHTML=`<i class="ti ti-${added?'check':'heart'}" style="font-size:11px"></i>${added?'追加済み':'お気に入り'}`;
-  showToast(added?'お気に入りに追加しました':'お気に入りから削除しました');
-}
-
-function openSite(site,url){
-  document.getElementById('browse-placeholder').style.display='none';
-  const wv=document.getElementById('browse-webview');
-  wv.classList.add('active');
-  document.getElementById('webview-url-bar').textContent=url;
-  const siteName=SITES[site]?.label||site;
-  document.getElementById('webview-msg').textContent=`${siteName}のページを外部ブラウザで開きます。\n「ブラウザで開く」ボタンを押してください。`;
-}
-
-function closeBrowse(){
-  document.getElementById('browse-placeholder').style.display='';
-  document.getElementById('browse-webview').classList.remove('active');
-}
-
-const notifications=[
-  {id:1,title:'転生したら最強の魔法使いだった件',chapter:'第412話　決戦の前夜',site:'narou',time:'3分前',unread:true},
-  {id:2,title:'俺だけレベルアップな件',chapter:'第88話　覚醒の瞬間',site:'kakuyomu',time:'27分前',unread:true},
-  {id:3,title:'乙女ゲーの悪役令嬢に転生したが全力で幸せになります',chapter:'第201話　王子の告白',site:'hameln',time:'1時間前',unread:true},
-  {id:4,title:'最強の魔剣士は平凡な日常を望む',chapter:'第55話　試練の塔',site:'novelup',time:'2時間前',unread:true},
-  {id:5,title:'冒険者になりたいと都に出て行った娘',chapter:'第144話　帰還',site:'narou',time:'3時間前',unread:true},
-  {id:6,title:'なろう系最強チート主人公が異世界で無双する話',chapter:'第1024話　宇宙の理',site:'kakuyomu',time:'5時間前',unread:true},
-  {id:7,title:'薬屋のひとりごと 二次創作版',chapter:'第33話　後宮の秘密',site:'arcadia',time:'昨日',unread:true},
-  {id:8,title:'蜘蛛ですが、なにか？ SS',chapter:'短編「転生後の日常」',site:'hameln',time:'昨日',unread:false},
-];
-
-const favorites=[
-  {id:1,title:'転生したら最強の魔法使いだった件',author:'白石新',site:'narou',emoji:'🧙',progress:82,hasNew:true,chapters:412},
-  {id:2,title:'俺だけレベルアップな件',author:'佐藤健太',site:'kakuyomu',emoji:'⚔️',progress:35,hasNew:true,chapters:88},
-  {id:3,title:'乙女ゲーの悪役令嬢に転生',author:'花山あかり',site:'hameln',emoji:'👑',progress:95,hasNew:false,chapters:201},
-  {id:4,title:'最強の魔剣士は平凡な日常を望む',author:'鈴木一郎',site:'novelup',emoji:'🗡️',progress:48,hasNew:true,chapters:55},
-];
-
-const readingPositions=[
-  {id:1,title:'転生したら最強の魔法使いだった件',chapter:'第412話 / 全412話',site:'narou',emoji:'🧙',progress:100,lastRead:'本日 14:32',status:'最新話まで読了'},
-  {id:2,title:'俺だけレベルアップな件',chapter:'第31話 / 全88話',site:'kakuyomu',emoji:'⚔️',progress:35,lastRead:'昨日 22:15',status:'続きを読む'},
-  {id:3,title:'乙女ゲーの悪役令嬢に転生',chapter:'第191話 / 全201話',site:'hameln',emoji:'👑',progress:95,lastRead:'2日前',status:'もうすぐ読了'},
-];
-
-const rssFeeds=[
-  {id:1,site:'narou',label:'なろう 新着ランキング',url:'https://ncode.syosetu.com/rss',interval:'15分',lastOk:true,items:8},
-  {id:2,site:'kakuyomu',label:'カクヨム 新着',url:'https://kakuyomu.jp/rss',interval:'30分',lastOk:true,items:3},
-  {id:3,site:'hameln',label:'ハーメルン 更新',url:'https://syosetu.org/rss',interval:'1時間',lastOk:false,items:0},
-  {id:4,site:'novelup',label:'ノベルアップ+ 新着',url:'https://novelup.plus/rss',interval:'1時間',lastOk:true,items:1},
-];
-
-const urlList=[
-  {id:1,url:'https://ncode.syosetu.com/n4830bu/',title:'転生したら最強の魔法使いだった件',site:'narou',added:'2025-11-01',notify:'即時'},
-  {id:2,url:'https://kakuyomu.jp/works/16816927860988352',title:'俺だけレベルアップな件',site:'kakuyomu',added:'2025-12-14',notify:'即時'},
-];
-
-function renderNotifications(){
-  const list=document.getElementById('notif-list');
-  list.innerHTML='';
-  notifications.forEach(n=>{
-    const d=document.createElement('div');
-    d.className='notif-card'+(n.unread?' unread':'');
-    d.innerHTML=`<div class="notif-dot${n.unread?'':' gray'}"></div>
-      <div class="notif-body">
-        <div class="notif-title">${n.title}</div>
-        <div class="notif-meta">${siteTag(n.site)}<span>${n.chapter}</span><span style="margin-left:auto">${n.time}</span></div>
-        <div class="notif-action">
-          <button class="btn-sm accent" onclick="showToast('ブラウザで開きます')"><i class="ti ti-external-link" style="font-size:11px"></i> ブラウザで開く</button>
-          ${n.unread?`<button class="btn-sm" onclick="markRead(${n.id},this)">既読にする</button>`:''}
-        </div>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-function markRead(id,btn){
-  const n=notifications.find(x=>x.id===id);
-  if(n)n.unread=false;
-  btn.closest('.notif-card').classList.remove('unread');
-  btn.closest('.notif-card').querySelector('.notif-dot').classList.add('gray');
-  btn.style.display='none';
-}
-
-function clearAll(){notifications.forEach(n=>n.unread=false);renderNotifications();showToast('すべて既読にしました');}
-
-function renderFavorites(){
-  const g=document.getElementById('fav-grid');
-  g.innerHTML='';
-  favorites.forEach(f=>{
-    const d=document.createElement('div');
-    d.className='fav-card';
-    d.innerHTML=`${f.hasNew?'<span class="fav-new">NEW</span>':''}
-      <div class="fav-cover"><span>${f.emoji}</span><div class="fav-cover-bar"><div class="fav-progress" style="width:${f.progress}%"></div></div></div>
-      <div class="fav-title">${f.title}</div>
-      <div class="fav-sub">${siteTag(f.site)}<span>第${f.chapters}話</span></div>`;
-    d.onclick=()=>showToast(`「${f.title}」をブラウザで開きます`);
-    g.appendChild(d);
-  });
-}
-
-function renderReading(){
-  const list=document.getElementById('reading-list');
-  list.innerHTML='';
-  readingPositions.forEach(r=>{
-    const d=document.createElement('div');
-    d.className='reading-card';
-    d.innerHTML=`<div class="reading-icon">${r.emoji}</div>
-      <div class="reading-info">
-        <div class="reading-title">${r.title}</div>
-        <div class="reading-chapter">${r.chapter}</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${r.progress}%"></div></div>
-        <div class="progress-text"><span>${r.status}</span><span>${r.lastRead} に読了</span></div>
-      </div>
-      <div class="reading-actions">
-        ${siteTag(r.site)}
-        <button class="open-btn" onclick="showToast('ブラウザで続きを開きます')"><i class="ti ti-external-link" style="font-size:11px"></i>続きへ</button>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-function renderRSS(){
-  const list=document.getElementById('rss-list');
-  list.innerHTML='';
-  rssFeeds.forEach(r=>{
-    const d=document.createElement('div');
-    d.className='rss-card';
-    d.innerHTML=`<div class="rss-icon"><i class="ti ti-rss" aria-hidden="true"></i></div>
-      <div class="rss-body"><div class="rss-title">${r.label}</div><div class="rss-meta">${r.url} · 間隔: ${r.interval} · 新着: <strong>${r.items}件</strong></div></div>
-      <div class="rss-status ${r.lastOk?'ok':'err'}"><i class="ti ti-${r.lastOk?'check':'alert-triangle'}" style="font-size:11px" aria-hidden="true"></i>${r.lastOk?'正常':'エラー'}</div>`;
-    list.appendChild(d);
-  });
-}
-
-function renderUrls(){
-  const list=document.getElementById('url-list');
-  list.innerHTML='';
-  urlList.forEach(u=>{
-    const d=document.createElement('div');
-    d.className='rss-card';
-    d.innerHTML=`<div class="rss-icon" style="color:var(--acc)"><i class="ti ti-link" aria-hidden="true"></i></div>
-      <div class="rss-body"><div class="rss-title">${u.title}</div><div class="rss-meta">${siteTag(u.site)} ${u.url.substring(0,36)}… · 通知: ${u.notify}</div></div>
-      <div style="display:flex;gap:5px;">
-        <button class="btn-icon" onclick="showToast('ブラウザで開きます')"><i class="ti ti-external-link" aria-hidden="true"></i></button>
-        <button class="btn-icon" style="color:#E24B4A" onclick="this.closest('.rss-card').remove();showToast('削除しました')"><i class="ti ti-trash" aria-hidden="true"></i></button>
-      </div>`;
-    list.appendChild(d);
-  });
-}
-
-const panelTitles={notif:'更新通知',fav:'お気に入り',reading:'読了位置',rss:'RSS監視',urls:'URL登録',ranking:'ランキング',search:'作品を探す',browse:'サイトを開く'};
-
-function switchNav(el,panel){
-  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+panel).classList.add('active');
-  document.getElementById('topbar-title').textContent=panelTitles[panel];
-}
-
-function toggleChip(el){el.classList.toggle('on');}
-function openModal(){document.getElementById('modal').classList.add('open');}
-function closeModal(){document.getElementById('modal').classList.remove('open');}
-function addUrl(){
-  const url=document.getElementById('url-input').value.trim();
-  if(!url){showToast('URLを入力してください');return;}
-  closeModal();
-  showToast('URLを登録しました');
-  document.getElementById('url-input').value='';
-}
-
-let toastTimer;
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
-}
-
-renderNotifications();
-renderFavorites();
-renderReading();
-renderRSS();
-renderUrls();
-renderRanking();
-doSearch();
-</script>
+        <section class="view" id="settings-view">
+          <form class="settings-panel" id="settings-form">
+            <div class="section-heading">
+              <h3>設定</h3>
+              <p>巡回方法、通知、データ管理を調整できます。</p>
+            </div>
+            <div class="settings-grid">
+              <label>
+                RSS取得プロキシ
+                <input id="setting-proxy" type="url" placeholder="例: https://example.com/?url=">
+                <small>CORSでRSS取得できない場合のみ設定します。末尾に対象URLが連結されます。</small>
+              </label>
+              <label>
+                原典リンクの開き方
+                <select id="setting-open-mode">
+                  <option value="tab">新しいタブ</option>
+                  <option value="current">現在のタブ</option>
+                </select>
+              </label>
+              <label class="toggle-line">
+                <input id="setting-notifications" type="checkbox">
+                <span>更新確認時にブラウザ通知を使う</span>
+              </label>
+              <label class="toggle-line">
+                <input id="setting-cache-title" type="checkbox">
+                <span>リンク先ページのタイトル取得を試す</span>
+              </label>
+            </div>
+            <div class="form-row">
+              <button class="primary-button" type="submit">設定を保存</button>
+              <button class="ghost-button" id="export-data" type="button">データを書き出し</button>
+              <label class="file-button">
+                データを読み込み
+                <input id="import-data" type="file" accept="application/json">
+              </label>
+            </div>
+          </form>
+          <div class="compliance-panel">
+            <h3>運用ガードレール</h3>
+            <ul>
+              <li>本文全文の再配信やミラー化は行いません。</li>
+              <li>本文キャッシュは実装せず、原典サイトを開く補助ツールとして設計しています。</li>
