@@ -416,7 +416,9 @@ textarea {
 .novel-card,
 .update-card,
 .catalog-card,
-.ranking-item {
+.ranking-item,
+.reader-summary,
+.episode-section {
   padding: 14px;
 }
 
@@ -465,6 +467,84 @@ textarea {
 
 .story-toggle {
   margin-top: 6px;
+}
+
+.reader-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.reader-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.reader-summary,
+.episode-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.reader-summary h2 {
+  margin-bottom: 6px;
+}
+
+.reader-story {
+  margin: 10px 0 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.reader-official-link {
+  display: inline-grid;
+  place-items: center;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.episode-section h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.episode-list {
+  display: grid;
+  gap: 8px;
+}
+
+.episode-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.episode-link span:last-child {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.episode-link.is-read {
+  color: var(--muted);
+}
+
+.episode-link.is-read span:last-child {
+  color: var(--muted);
 }
 
 .ranking-item {

@@ -1,6 +1,6 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
-const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings"]);
+const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings", "reader"]);
 const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
 const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
@@ -56,6 +56,7 @@ const state = {
   updateChecking: false,
   updateCheckMessage: "",
   updateCheckError: "",
+  readerNovelId: "",
 };
 
 const elements = {};
@@ -102,6 +103,7 @@ function cacheElements() {
     novelList: document.querySelector("#novelList"),
     libraryEmpty: document.querySelector("#libraryEmpty"),
     updatesList: document.querySelector("#updatesList"),
+    readerPanel: document.querySelector("#readerPanel"),
     updatesEmpty: document.querySelector("#updatesEmpty"),
     updatesSummary: document.querySelector("#updatesSummary"),
     checkUpdates: document.querySelector("#checkUpdates"),
@@ -552,6 +554,7 @@ function render() {
   renderLibrary();
   renderUpdates();
   renderRanking();
+  renderReader();
 }
 
 function renderCatalogResults() {
@@ -1108,6 +1111,7 @@ function renderNovelCard(novel) {
       ${novel.memo ? `<p>${escapeHtml(novel.memo)}</p>` : ""}
       <div class="card-actions">
         ${urlButton}
+        ${novel.ncode ? '<button class="text-button" type="button" data-action="reader">話一覧</button>' : ""}
         <button class="text-button" type="button" data-action="read">既読</button>
         <button class="text-button" type="button" data-action="edit">編集</button>
         <button class="text-button" type="button" data-action="delete">削除</button>
@@ -1123,6 +1127,115 @@ function renderContinueLink(novel) {
       続きから読む
     </a>
   `;
+}
+
+function openReader(novel) {
+  if (!novel.ncode) return;
+  state.readerNovelId = novel.id;
+  switchView("reader");
+  renderReader();
+}
+
+function renderReader() {
+  if (!elements.readerPanel) return;
+  const novel = state.novels.find((item) => item.id === state.readerNovelId);
+  if (!novel) {
+    elements.readerPanel.innerHTML = renderReaderEmpty();
+    bindReaderActions();
+    return;
+  }
+
+  if (!novel.ncode) {
+    elements.readerPanel.innerHTML = renderExternalReaderNotice(novel);
+    bindReaderActions();
+    return;
+  }
+
+  const model = NovelReader.createReaderModel(novel);
+  elements.readerPanel.innerHTML = renderReaderPanel(model);
+  bindReaderActions();
+}
+
+function renderReaderEmpty() {
+  return `
+    <div class="reader-header">
+      <button class="ghost-button" type="button" data-reader-action="back">本棚へ戻る</button>
+    </div>
+    <div class="empty-state">本棚から作品を選択してください。</div>
+  `;
+}
+
+function renderExternalReaderNotice(novel) {
+  return `
+    <div class="reader-header">
+      <button class="ghost-button" type="button" data-reader-action="back">本棚へ戻る</button>
+    </div>
+    <article class="reader-summary">
+      <h2>${escapeHtml(novel.title)}</h2>
+      <p class="muted">この作品は外部リンク管理です。自動話一覧は小説家になろう作品のみ対応しています。</p>
+      ${novel.url ? `<a class="primary-button reader-official-link" href="${escapeHtml(novel.url)}" target="_blank" rel="noopener">公式サイトで開く</a>` : ""}
+    </article>
+  `;
+}
+
+function renderReaderPanel(model) {
+  return `
+    <div class="reader-header">
+      <button class="ghost-button" type="button" data-reader-action="back">本棚へ戻る</button>
+      <a class="text-button" href="${escapeHtml(model.url)}" target="_blank" rel="noopener">公式作品ページ</a>
+    </div>
+    <article class="reader-summary">
+      <p class="ranking-source">${escapeHtml(model.site)}</p>
+      <h2>${escapeHtml(model.title)}</h2>
+      ${model.author ? `<p class="muted">作者：${escapeHtml(model.author)}</p>` : ""}
+      <div class="meta-row">
+        <span class="badge">最終更新 ${escapeHtml(model.generalLastup || "不明")}</span>
+        <span class="badge">全 ${model.totalEpisodes}話</span>
+        <span class="badge">読了 ${model.lastReadEpisode}話</span>
+        <span class="badge unread">未読 ${model.unreadEpisodes}話</span>
+      </div>
+      <p class="reader-story">${escapeHtml(model.story || "あらすじはありません。")}</p>
+    </article>
+    <section class="episode-section" aria-labelledby="episodeListTitle">
+      <h3 id="episodeListTitle">話一覧</h3>
+      <div class="episode-list">
+        ${model.episodes.map(renderEpisodeItem).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderEpisodeItem(item) {
+  return `
+    <a class="episode-link${item.read ? " is-read" : ""}" href="${escapeHtml(item.url)}" target="_blank" rel="noopener" data-reader-episode="${item.episode}">
+      <span>${escapeHtml(item.title)}</span>
+      <span>${item.read ? "読了" : "未読"}</span>
+    </a>
+  `;
+}
+
+function bindReaderActions() {
+  elements.readerPanel.querySelectorAll("[data-reader-action='back']").forEach((button) => {
+    button.addEventListener("click", () => switchView("library"));
+  });
+  elements.readerPanel.querySelectorAll("[data-reader-episode]").forEach((link) => {
+    link.addEventListener("click", () => markEpisodeRead(Number(link.dataset.readerEpisode)));
+  });
+}
+
+function markEpisodeRead(episode) {
+  const novel = state.novels.find((item) => item.id === state.readerNovelId);
+  if (!novel || !episode) return;
+  const readChapter = Math.max(toChapterNumber(novel.lastReadEpisode ?? novel.readChapter), episode);
+  updateNovel(novel.id, {
+    lastReadEpisode: readChapter,
+    readChapter,
+    position: formatChapter(readChapter),
+    lastOpenedChapter: episode,
+    lastViewedAt: new Date().toISOString(),
+    unread: (novel.generalAllNo || novel.latestChapter || 0) > readChapter,
+    lastCheckDiff: (novel.generalAllNo || novel.latestChapter || 0) > readChapter ? novel.lastCheckDiff : 0,
+  });
 }
 
 function getUnreadChapterCount(novel) {
@@ -1177,6 +1290,9 @@ function handleCardAction(button) {
       break;
     case "continue":
       saveReadingProgress(novel);
+      break;
+    case "reader":
+      openReader(novel);
       break;
     case "delete":
       deleteNovel(novel);
