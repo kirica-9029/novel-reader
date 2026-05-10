@@ -217,6 +217,33 @@
       <p>Novel ShelfはWeb小説の本棚管理、更新通知、読了位置管理に対応した軽量リーダーです。</p>
     </footer>
 
+    <div class="tutorial-modal is-hidden" id="tutorialModal" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <div class="tutorial-card">
+        <div class="tutorial-head">
+          <div>
+            <p class="eyebrow">はじめての使い方</p>
+            <h2 id="tutorialTitle">Novel Shelfを始める</h2>
+          </div>
+          <button class="icon-button" id="tutorialClose" type="button" aria-label="チュートリアルを閉じる">×</button>
+        </div>
+        <ol class="tutorial-steps">
+          <li>
+            <strong>作品を検索</strong>
+            <span>本棚の検索欄で小説家になろうAPI検索、または各サイトの外部検索を使います。</span>
+          </li>
+          <li>
+            <strong>本棚に追加</strong>
+            <span>検索結果の「本棚に追加」か、作品URL貼り付けで登録します。</span>
+          </li>
+          <li>
+            <strong>更新を確認</strong>
+            <span>更新タブの「更新確認」で、登録済みなろう作品の最新話数を確認できます。</span>
+          </li>
+        </ol>
+        <button class="primary-button tutorial-start" id="tutorialComplete" type="button">はじめる</button>
+      </div>
+    </div>
+
     <script src="./reader.js" defer></script>
     <script src="./app.js" defer></script>
   </body>

@@ -1,5 +1,6 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
+const TUTORIAL_KEY = "novelShelf:tutorialCompleted";
 const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings", "reader"]);
 const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
@@ -73,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   processBookmarkletParams();
   initializeRoute();
   render();
+  showTutorialIfNeeded();
 });
 
 function cacheElements() {
@@ -124,6 +126,9 @@ function cacheElements() {
     clearData: document.querySelector("#clearData"),
     exportBox: document.querySelector("#exportBox"),
     bookmarkletLink: document.querySelector("#bookmarkletLink"),
+    tutorialModal: document.querySelector("#tutorialModal"),
+    tutorialClose: document.querySelector("#tutorialClose"),
+    tutorialComplete: document.querySelector("#tutorialComplete"),
   });
 }
 
@@ -238,6 +243,8 @@ function bindSettingsEvents() {
   elements.exportData.addEventListener("click", exportData);
   elements.importData.addEventListener("change", importData);
   elements.clearData.addEventListener("click", clearData);
+  elements.tutorialClose.addEventListener("click", completeTutorial);
+  elements.tutorialComplete.addEventListener("click", completeTutorial);
 }
 
 function bindRankingControl(element, stateKey, eventName, options = {}) {
@@ -327,6 +334,17 @@ function createId() {
 
 function loadTheme() {
   return localStorage.getItem(THEME_KEY) || "light";
+}
+
+function showTutorialIfNeeded() {
+  if (localStorage.getItem(TUTORIAL_KEY) === "true") return;
+  elements.tutorialModal.classList.remove("is-hidden");
+  elements.tutorialComplete.focus();
+}
+
+function completeTutorial() {
+  localStorage.setItem(TUTORIAL_KEY, "true");
+  elements.tutorialModal.classList.add("is-hidden");
 }
 
 function applyTheme(theme) {
