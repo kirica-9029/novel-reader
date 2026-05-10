@@ -5,6 +5,16 @@ const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
 const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
 const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
+const SITE_HOME_URLS = {
+  "小説家になろう": "https://syosetu.com/",
+  カクヨム: "https://kakuyomu.jp/",
+  ハーメルン: "https://syosetu.org/",
+  Arcadia: "http://www.mai-net.net/",
+  暁: "https://www.akatsuki-novels.com/",
+  "ノベルアップ+": "https://novelup.plus/",
+  pixiv小説: "https://www.pixiv.net/novel",
+  ノクターン: "https://noc.syosetu.com/",
+};
 
 const periodLabels = {
   daily: "日間",
@@ -31,9 +41,21 @@ const rankingSeed = [
   { title: "月下の契約者", site: "ノクターン", genre: "異世界", tags: ["恋愛", "ファンタジー"], scores: { daily: 4980, weekly: 29700, monthly: 120400 } },
 ];
 
+const catalogSeed = rankingSeed.map((item, index) => ({
+  id: `catalog-${index + 1}`,
+  title: item.title,
+  site: item.site,
+  url: SITE_HOME_URLS[item.site] || "",
+  latestChapter: 12 + index,
+  tags: item.tags,
+  summary: `${item.genre}ジャンルの注目作品。${item.tags.join("、")}が好きな読者向けです。`,
+}));
+
 const state = {
   novels: [],
   activeView: "library",
+  catalogSite: DEFAULT_SITE,
+  catalogSearch: "",
   librarySearch: "",
   siteFilter: "all",
   rankingPeriod: "daily",
@@ -63,6 +85,10 @@ function cacheElements() {
     tabButtons: document.querySelectorAll(".tab-button"),
     panels: document.querySelectorAll("[data-view-panel]"),
     openAddForm: document.querySelector("#openAddForm"),
+    catalogSiteTabs: document.querySelector("#catalogSiteTabs"),
+    catalogSearch: document.querySelector("#catalogSearch"),
+    catalogResults: document.querySelector("#catalogResults"),
+    catalogEmpty: document.querySelector("#catalogEmpty"),
     novelForm: document.querySelector("#novelForm"),
     cancelEdit: document.querySelector("#cancelEdit"),
     novelId: document.querySelector("#novelId"),
@@ -98,9 +124,18 @@ function cacheElements() {
 
 function populateStaticOptions() {
   // Site choices are shared by multiple controls; keep the source of truth in JS.
+  populateCatalogSiteTabs();
   populateSelect(elements.novelSite, NOVEL_SITE_OPTIONS);
   populateSelect(elements.siteFilter, NOVEL_SITE_OPTIONS, { allLabel: "すべて" });
   populateSelect(elements.rankingSite, SITE_OPTIONS, { allLabel: "全サイト" });
+}
+
+function populateCatalogSiteTabs() {
+  elements.catalogSiteTabs.innerHTML = SITE_OPTIONS.map((site) => `
+    <button class="site-tab${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}">
+      ${escapeHtml(site)}
+    </button>
+  `).join("");
 }
 
 function populateSelect(select, options, config = {}) {
@@ -133,6 +168,16 @@ function bindNavigationEvents() {
 
 function bindLibraryEvents() {
   elements.openAddForm.addEventListener("click", () => showForm());
+  elements.catalogSearch.addEventListener("input", (event) => {
+    state.catalogSearch = event.target.value.trim();
+    renderCatalogResults();
+  });
+  elements.catalogSiteTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-catalog-site]");
+    if (!button) return;
+    state.catalogSite = button.dataset.catalogSite;
+    renderCatalogResults();
+  });
   elements.cancelEdit.addEventListener("click", hideForm);
   elements.novelForm.addEventListener("submit", saveNovelFromForm);
   elements.librarySearch.addEventListener("input", (event) => {
@@ -441,9 +486,77 @@ function getFilteredNovels() {
 }
 
 function render() {
+  renderCatalogResults();
   renderLibrary();
   renderUpdates();
   renderRanking();
+}
+
+function renderCatalogResults() {
+  const results = getCatalogResults();
+  elements.catalogEmpty.classList.toggle("is-hidden", results.length > 0);
+  elements.catalogResults.innerHTML = results.map(renderCatalogCard).join("");
+  elements.catalogSiteTabs.querySelectorAll("[data-catalog-site]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.catalogSite === state.catalogSite);
+  });
+  bindCatalogActions();
+}
+
+function getCatalogResults() {
+  const keyword = normalizeText(state.catalogSearch);
+  return catalogSeed
+    .filter((item) => {
+      const matchesSite = item.site === state.catalogSite;
+      const searchableText = normalizeText(`${item.title} ${item.site} ${item.tags.join(" ")} ${item.summary}`);
+      return matchesSite && (!keyword || searchableText.includes(keyword));
+    })
+    .slice(0, 8);
+}
+
+function renderCatalogCard(item) {
+  const alreadyAdded = Boolean(findDuplicateNovel(item));
+  const tags = item.tags.map((tag) => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join("");
+
+  return `
+    <article class="catalog-card">
+      <div>
+        <p class="ranking-source">${escapeHtml(item.site)}</p>
+        <h3 class="novel-title">${escapeHtml(item.title)}</h3>
+        <p class="muted">${escapeHtml(item.summary)}</p>
+        <div class="meta-row">
+          <span class="badge">更新 ${item.latestChapter}話</span>
+          ${tags}
+        </div>
+      </div>
+      <button class="primary-button catalog-add-button" type="button" data-catalog-id="${item.id}" ${alreadyAdded ? "disabled" : ""}>
+        ${alreadyAdded ? "登録済み" : "本棚に追加"}
+      </button>
+    </article>
+  `;
+}
+
+function bindCatalogActions() {
+  elements.catalogResults.querySelectorAll("[data-catalog-id]").forEach((button) => {
+    button.addEventListener("click", () => addCatalogNovel(button.dataset.catalogId));
+  });
+}
+
+function addCatalogNovel(catalogId) {
+  const item = catalogSeed.find((catalogItem) => catalogItem.id === catalogId);
+  if (!item || findDuplicateNovel(item)) return;
+
+  const novel = createNovel({
+    title: item.title,
+    site: item.site,
+    url: item.url,
+    latestChapter: item.latestChapter,
+    readChapter: 0,
+    memo: item.summary,
+    unread: true,
+  });
+  state.novels.unshift(novel);
+  saveState();
+  render();
 }
 
 function renderLibrary() {

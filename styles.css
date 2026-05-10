@@ -119,6 +119,7 @@ h2 {
 
 .tab-button,
 .segment-button,
+.site-tab,
 .primary-button,
 .ghost-button,
 .danger-button,
@@ -156,6 +157,18 @@ h2 {
   font-weight: 700;
 }
 
+.site-tab {
+  min-width: max-content;
+  padding: 8px 12px;
+  color: var(--muted);
+}
+
+.site-tab.is-active {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
 .icon-button {
   width: 44px;
   flex: 0 0 auto;
@@ -168,6 +181,11 @@ h2 {
   background: var(--accent);
   color: #ffffff;
   font-weight: 700;
+}
+
+.primary-button:disabled {
+  cursor: default;
+  opacity: 0.58;
 }
 
 .ghost-button,
@@ -217,7 +235,9 @@ h2 {
 
 .novel-form,
 .toolbar,
+.catalog-search,
 .ranking-controls,
+.catalog-card,
 .novel-card,
 .update-card,
 .ranking-item,
@@ -278,6 +298,30 @@ textarea {
   margin-bottom: 14px;
 }
 
+.catalog-search {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.compact-head {
+  margin: 0;
+}
+
+.compact-head h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.site-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
 .ranking-controls {
   display: grid;
   gap: 12px;
@@ -315,6 +359,7 @@ textarea {
 }
 
 .novel-list,
+.catalog-results,
 .ranking-list {
   display: grid;
   gap: 10px;
@@ -322,8 +367,14 @@ textarea {
 
 .novel-card,
 .update-card,
+.catalog-card,
 .ranking-item {
   padding: 14px;
+}
+
+.catalog-card {
+  display: grid;
+  gap: 12px;
 }
 
 .ranking-item {
@@ -521,6 +572,11 @@ textarea {
   .settings-grid {
     grid-template-columns: repeat(3, 1fr);
     align-items: end;
+  }
+
+  .catalog-card {
+    grid-template-columns: 1fr auto;
+    align-items: center;
   }
 
   .ranking-filter-grid {
