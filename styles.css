@@ -106,6 +106,18 @@ summary:focus-visible {
   place-items: center;
 }
 
+.hero-info-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.hero-info-links a {
+  color: var(--accent-strong);
+}
+
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);
@@ -179,6 +191,13 @@ h2 {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.legal-content-plain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .legal-content h2 {
@@ -350,6 +369,11 @@ h2 {
 }
 
 .site-support-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.98rem;
+}
+
+.site-support-card h2 {
   margin: 0 0 8px;
   font-size: 0.98rem;
 }

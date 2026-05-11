@@ -34,70 +34,6 @@
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./assets/icon.svg" />
     <link rel="stylesheet" href="./styles.css" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "Novel Shelfとは何ですか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Novel Shelfは、複数のWeb小説をまとめて本棚管理し、更新確認や読了位置管理ができる軽量ツールです。ブラウザだけで利用できます。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "どの小説投稿サイトに対応していますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "小説家になろう、ノクターンノベルズ、カクヨム、ハーメルン、Arcadia、暁、pixiv小説、ノベルアップ+に対応しています。小説家になろうはAPI検索と更新確認に対応し、その他サイトは外部検索、URL登録、読了登録に対応しています。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "本文データは保存されますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "本文データは保存しません。作品情報、URL、更新話数、読了位置、メモなど本棚管理に必要な情報だけを保存します。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "データはどこに保存されますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "データは利用中のブラウザ内のlocalStorageに保存されます。ブラウザのデータ削除、端末変更、別ブラウザ利用時には自動で引き継がれません。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "スマホでも使えますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "スマホでも使えます。画面幅に合わせて本棚、更新リスト、設定画面が読みやすく表示されます。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "小説家になろう以外でも更新確認できますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "APIによる更新確認は小説家になろうのみ対応しています。その他サイトは外部検索やURL登録、読了位置管理として利用できます。"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "JSONバックアップは何のために使いますか？",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "JSONバックアップは、本棚データを別端末や別ブラウザへ移したい場合、またはブラウザのデータ削除に備えて保存しておきたい場合に使います。"
-            }
-          }
-        ]
-      }
-    </script>
   </head>
   <body>
     <header class="app-header">
@@ -110,6 +46,10 @@
           <button class="ghost-button" id="heroSearchNarou" type="button">小説家になろうで検索</button>
           <button class="ghost-button" id="heroShowTutorial" type="button">使い方を見る</button>
         </div>
+        <nav class="hero-info-links" aria-label="初めての方向け情報">
+          <a href="./supported-sites.html">対応サイト</a>
+          <a href="./faq.html">FAQ</a>
+        </nav>
       </div>
       <button class="icon-button" id="themeToggle" type="button" aria-label="ダークテーマに切り替える" title="テーマ切替">
         <span id="themeIcon" aria-hidden="true">☾</span>
@@ -125,81 +65,6 @@
       </nav>
 
       <aside class="ad-slot" aria-label="広告枠">広告枠</aside>
-
-      <section class="supported-sites" aria-labelledby="supportedSitesTitle">
-        <div class="section-head compact-head">
-          <div>
-            <h2 id="supportedSitesTitle">対応サイト</h2>
-            <p>小説家になろうはAPI検索・更新確認に対応。その他サイトは外部検索とURL登録で、本棚管理と読了位置管理をまとめて行えます。</p>
-          </div>
-        </div>
-        <div class="site-support-grid" aria-label="対応サイトと機能範囲">
-          <article class="site-support-card">
-            <h3>小説家になろう</h3>
-            <div class="support-tags">
-              <span class="badge unread">API検索対応</span>
-              <span class="badge unread">API更新確認対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>ノクターンノベルズ</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>カクヨム</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>ハーメルン</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>Arcadia</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>暁</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>pixiv小説</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-          <article class="site-support-card">
-            <h3>ノベルアップ+</h3>
-            <div class="support-tags">
-              <span class="badge">外部検索対応</span>
-              <span class="badge">URL登録対応</span>
-              <span class="badge">読了登録対応</span>
-            </div>
-          </article>
-        </div>
-      </section>
 
       <section class="view is-active" id="libraryView" role="tabpanel" aria-labelledby="libraryTab" data-view-panel="library">
         <div class="section-head">
@@ -412,44 +277,6 @@
         <textarea id="exportBox" class="export-box" rows="8" readonly aria-label="書き出したJSON" placeholder="書き出したJSONがここに表示されます"></textarea>
       </section>
 
-      <section class="faq-section" aria-labelledby="faqTitle">
-        <div class="section-head compact-head">
-          <div>
-            <h2 id="faqTitle">FAQ</h2>
-            <p>Novel ShelfのWeb小説管理、本棚管理、更新確認、読了位置管理についてよくある質問をまとめました。</p>
-          </div>
-        </div>
-        <div class="faq-list">
-          <details class="faq-item">
-            <summary>Novel Shelfとは何ですか？</summary>
-            <p>Novel Shelfは、複数のWeb小説をまとめて本棚管理し、更新確認や読了位置管理ができる軽量ツールです。ブラウザだけで利用できます。</p>
-          </details>
-          <details class="faq-item">
-            <summary>どの小説投稿サイトに対応していますか？</summary>
-            <p>小説家になろう、ノクターンノベルズ、カクヨム、ハーメルン、Arcadia、暁、pixiv小説、ノベルアップ+に対応しています。小説家になろうはAPI検索と更新確認に対応し、その他サイトは外部検索、URL登録、読了登録に対応しています。</p>
-          </details>
-          <details class="faq-item">
-            <summary>本文データは保存されますか？</summary>
-            <p>本文データは保存しません。作品情報、URL、更新話数、読了位置、メモなど本棚管理に必要な情報だけを保存します。</p>
-          </details>
-          <details class="faq-item">
-            <summary>データはどこに保存されますか？</summary>
-            <p>データは利用中のブラウザ内のlocalStorageに保存されます。ブラウザのデータ削除、端末変更、別ブラウザ利用時には自動で引き継がれません。</p>
-          </details>
-          <details class="faq-item">
-            <summary>スマホでも使えますか？</summary>
-            <p>スマホでも使えます。画面幅に合わせて本棚、更新リスト、設定画面が読みやすく表示されます。</p>
-          </details>
-          <details class="faq-item">
-            <summary>小説家になろう以外でも更新確認できますか？</summary>
-            <p>APIによる更新確認は小説家になろうのみ対応しています。その他サイトは外部検索やURL登録、読了位置管理として利用できます。</p>
-          </details>
-          <details class="faq-item">
-            <summary>JSONバックアップは何のために使いますか？</summary>
-            <p>JSONバックアップは、本棚データを別端末や別ブラウザへ移したい場合、またはブラウザのデータ削除に備えて保存しておきたい場合に使います。</p>
-          </details>
-        </div>
-      </section>
     </main>
 
     <noscript>
@@ -462,6 +289,8 @@
     <footer class="app-footer">
       <p>Novel ShelfはWeb小説の本棚管理、更新通知、読了位置管理に対応した軽量リーダーです。</p>
       <nav class="footer-links" aria-label="サイト情報">
+        <a href="./supported-sites.html">対応サイト</a>
+        <a href="./faq.html">FAQ</a>
         <a href="./privacy.html">プライバシーポリシー</a>
         <a href="./terms.html">利用規約</a>
         <a href="./contact.html">お問い合わせ</a>

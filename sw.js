@@ -5,6 +5,8 @@ const APP_SHELL = [
   "./styles.css",
   "./app.js",
   "./reader.js",
+  "./supported-sites.html",
+  "./faq.html",
   "./privacy.html",
   "./terms.html",
   "./contact.html",
