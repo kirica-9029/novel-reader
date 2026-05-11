@@ -147,6 +147,56 @@ h2 {
   margin-bottom: 0;
 }
 
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.footer-links a {
+  color: var(--accent-strong);
+}
+
+.page-home-link,
+.legal-action-link {
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.legal-shell {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 0 14px 36px;
+}
+
+.legal-content {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.legal-content h2 {
+  margin-top: 20px;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content p {
+  color: var(--text);
+}
+
+.legal-ad-slot {
+  min-height: 120px;
+}
+
 .noscript-message {
   padding: 14px;
   border: 1px solid var(--line);
@@ -1258,6 +1308,21 @@ textarea {
     display: grid;
     grid-template-columns: 1fr 260px;
     gap: 18px;
+  }
+
+  .legal-shell {
+    grid-template-columns: 1fr 260px;
+  }
+
+  .legal-content {
+    grid-column: 1;
+  }
+
+  .legal-ad-slot {
+    grid-column: 2;
+    align-self: start;
+    position: sticky;
+    top: 16px;
   }
 
   .tab-nav,
