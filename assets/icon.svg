@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Novel Shelf">
+  <rect width="512" height="512" rx="96" fill="#2f6f5e"/>
+  <rect x="112" y="96" width="216" height="320" rx="28" fill="#ffffff"/>
+  <rect x="152" y="144" width="136" height="22" rx="11" fill="#2f6f5e"/>
+  <rect x="152" y="196" width="136" height="18" rx="9" fill="#c9ded7"/>
+  <rect x="152" y="238" width="96" height="18" rx="9" fill="#c9ded7"/>
+  <path d="M328 128h32c22 0 40 18 40 40v248H328V128z" fill="#dfeee9"/>
+  <path d="M360 168h40v248h-40z" fill="#1f4f42" opacity=".22"/>
+  <path d="M112 376h288v40H112z" fill="#1f4f42" opacity=".24"/>
+</svg>

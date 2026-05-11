@@ -1,0 +1,22 @@
+{
+  "name": "Novel Shelf",
+  "short_name": "Novel Shelf",
+  "id": "./",
+  "description": "複数のWeb小説をまとめて本棚管理し、更新確認や読了位置管理ができる軽量ツールです。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f4",
+  "theme_color": "#2f6f5e",
+  "orientation": "portrait-primary",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["books", "productivity", "utilities"]
+}
