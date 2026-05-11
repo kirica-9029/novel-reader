@@ -113,6 +113,14 @@ document.addEventListener("DOMContentLoaded", () => {
   showTutorialIfNeeded();
 });
 
+function on(element, eventName, handler, options) {
+  if (!element) {
+    console.warn(`Novel Shelf: missing event target for ${eventName}`);
+    return;
+  }
+  element.addEventListener(eventName, handler, options);
+}
+
 function cacheElements() {
   Object.assign(elements, {
     themeToggle: document.querySelector("#themeToggle"),
@@ -187,10 +195,13 @@ function populateStaticOptions() {
   populateSelect(elements.novelSite, NOVEL_SITE_OPTIONS);
   populateSelect(elements.siteFilter, NOVEL_SITE_OPTIONS, { allLabel: "すべて" });
   populateSelect(elements.rankingSite, SITE_OPTIONS);
-  elements.bookmarkletLink.href = createBookmarkletHref();
+  if (elements.rankingSite && SITE_OPTIONS.includes(state.rankingSite)) elements.rankingSite.value = state.rankingSite;
+  if (elements.rankingPeriod) elements.rankingPeriod.value = state.rankingPeriod;
+  if (elements.bookmarkletLink) elements.bookmarkletLink.href = createBookmarkletHref();
 }
 
 function populateCatalogSiteTabs() {
+  if (!elements.catalogSiteTabs) return;
   elements.catalogSiteTabs.innerHTML = SEARCH_SITE_OPTIONS.map((site) => `
     <li>
       <button class="site-card${site === state.catalogSite ? " is-active" : ""}" type="button" data-catalog-site="${escapeHtml(site)}" aria-label="${escapeHtml(`${site}で作品を探す`)}">
@@ -210,6 +221,7 @@ function getSiteCardMeta(site) {
 }
 
 function populateSelect(select, options, config = {}) {
+  if (!select) return;
   const allOption = config.allLabel ? [{ value: "all", label: config.allLabel }] : [];
   const siteOptions = options.map((option) => ({ value: option, label: option }));
   select.innerHTML = [...allOption, ...siteOptions].map(renderOption).join("");
@@ -228,26 +240,26 @@ function bindEvents() {
 }
 
 function bindNavigationEvents() {
-  elements.themeToggle.addEventListener("click", toggleTheme);
-  elements.heroRegisterUrl.addEventListener("click", focusUrlRegister);
-  elements.heroSearchNarou.addEventListener("click", focusNarouSearch);
-  elements.heroShowTutorial.addEventListener("click", openTutorial);
-  elements.libraryEmptyRegister.addEventListener("click", focusUrlRegister);
-  elements.libraryEmptySearch.addEventListener("click", focusNarouSearch);
-  elements.updatesEmptyRegister.addEventListener("click", focusUrlRegister);
-  elements.updatesEmptyCheck.addEventListener("click", focusUpdateCheck);
+  on(elements.themeToggle, "click", toggleTheme);
+  on(elements.heroRegisterUrl, "click", focusUrlRegister);
+  on(elements.heroSearchNarou, "click", focusNarouSearch);
+  on(elements.heroShowTutorial, "click", openTutorial);
+  on(elements.libraryEmptyRegister, "click", focusUrlRegister);
+  on(elements.libraryEmptySearch, "click", focusNarouSearch);
+  on(elements.updatesEmptyRegister, "click", focusUrlRegister);
+  on(elements.updatesEmptyCheck, "click", focusUpdateCheck);
   elements.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => switchView(button.dataset.view));
-    button.addEventListener("keydown", handleTabKeydown);
+    on(button, "click", () => switchView(button.dataset.view));
+    on(button, "keydown", handleTabKeydown);
   });
-  window.addEventListener("hashchange", () => {
+  on(window, "hashchange", () => {
     switchView(getViewFromLocation(), { replaceHash: false });
   });
 }
 
 function bindLibraryEvents() {
-  elements.openAddForm.addEventListener("click", focusUrlRegister);
-  elements.catalogSearch.addEventListener("input", (event) => {
+  on(elements.openAddForm, "click", focusUrlRegister);
+  on(elements.catalogSearch, "input", (event) => {
     state.catalogSearch = event.target.value.trim();
     if (isApiSearchSite(state.catalogSite)) {
       queueCatalogSearch();
@@ -258,14 +270,14 @@ function bindLibraryEvents() {
       renderSearchWorkspace();
     }
   });
-  elements.catalogExternalSearch.addEventListener("click", openExternalSearchPage);
-  elements.quickRegister.addEventListener("click", registerNovelFromUrl);
-  elements.quickUrl.addEventListener("input", () => {
+  on(elements.catalogExternalSearch, "click", openExternalSearchPage);
+  on(elements.quickRegister, "click", registerNovelFromUrl);
+  on(elements.quickUrl, "input", () => {
     if (!elements.novelForm.classList.contains("is-hidden")) return;
     const detectedSite = detectSiteFromUrl(elements.quickUrl.value);
     if (detectedSite) setFormError("");
   });
-  elements.catalogSiteTabs.addEventListener("click", (event) => {
+  on(elements.catalogSiteTabs, "click", (event) => {
     const button = event.target.closest("[data-catalog-site]");
     if (!button) return;
     state.catalogSite = button.dataset.catalogSite;
@@ -275,66 +287,66 @@ function bindLibraryEvents() {
     if (isApiSearchSite(state.catalogSite)) queueCatalogSearch(0);
     renderSearchWorkspace();
   });
-  elements.cancelEdit.addEventListener("click", hideForm);
-  elements.novelForm.addEventListener("submit", saveNovelFromForm);
-  elements.novelUrl.addEventListener("input", () => {
+  on(elements.cancelEdit, "click", hideForm);
+  on(elements.novelForm, "submit", saveNovelFromForm);
+  on(elements.novelUrl, "input", () => {
     const detectedSite = detectSiteFromUrl(elements.novelUrl.value);
     if (detectedSite) setSelectValue(elements.novelSite, detectedSite);
   });
-  elements.librarySearch.addEventListener("input", (event) => {
+  on(elements.librarySearch, "input", (event) => {
     state.librarySearch = event.target.value.trim();
     renderLibrary();
   });
-  elements.siteFilter.addEventListener("change", (event) => {
+  on(elements.siteFilter, "change", (event) => {
     state.siteFilter = event.target.value;
     renderLibrary();
   });
-  elements.libraryStatusFilter.addEventListener("change", (event) => {
+  on(elements.libraryStatusFilter, "change", (event) => {
     state.libraryStatusFilter = event.target.value;
     renderLibrary();
   });
-  elements.librarySort.addEventListener("change", (event) => {
+  on(elements.librarySort, "change", (event) => {
     state.librarySort = event.target.value;
     renderLibrary();
   });
 }
 
 function bindUpdateEvents() {
-  elements.checkUpdates.addEventListener("click", checkRegisteredNovelUpdates);
-  elements.markAllRead.addEventListener("click", markAllRead);
+  on(elements.checkUpdates, "click", checkRegisteredNovelUpdates);
+  on(elements.markAllRead, "click", markAllRead);
 }
 
 function bindRankingEvents() {
-  elements.rankingControls.addEventListener("submit", (event) => {
+  on(elements.rankingControls, "submit", (event) => {
     event.preventDefault();
   });
-  elements.rankingSite.addEventListener("change", (event) => {
+  on(elements.rankingSite, "change", (event) => {
     state.rankingSite = event.target.value;
     state.rankingResults = [];
     state.rankingError = "";
     state.rankingHasFetched = false;
     renderRanking();
   });
-  elements.rankingPeriod.addEventListener("change", (event) => {
+  on(elements.rankingPeriod, "change", (event) => {
     state.rankingPeriod = event.target.value;
     state.rankingResults = [];
     state.rankingError = "";
     state.rankingHasFetched = false;
     renderRanking();
   });
-  elements.fetchRanking.addEventListener("click", fetchSelectedRanking);
+  on(elements.fetchRanking, "click", fetchSelectedRanking);
 }
 
 function bindSettingsEvents() {
-  elements.exportData.addEventListener("click", exportData);
-  elements.importData.addEventListener("change", importData);
-  elements.clearData.addEventListener("click", clearData);
-  elements.tutorialClose?.addEventListener("click", completeTutorial);
-  elements.tutorialComplete?.addEventListener("click", completeTutorial);
-  elements.tutorialModal?.addEventListener("click", (event) => {
+  on(elements.exportData, "click", exportData);
+  on(elements.importData, "change", importData);
+  on(elements.clearData, "click", clearData);
+  on(elements.tutorialClose, "click", closeTutorial);
+  on(elements.tutorialComplete, "click", completeTutorial);
+  on(elements.tutorialModal, "click", (event) => {
     if (event.target === elements.tutorialModal) completeTutorial();
   });
-  document.addEventListener("keydown", (event) => {
+  on(document, "keydown", (event) => {
     if (event.key === "Escape" && !elements.tutorialModal?.classList.contains("is-hidden")) {
       completeTutorial();
     }
@@ -466,13 +478,20 @@ function showTutorialIfNeeded() {
 }
 
 function openTutorial() {
+  if (!elements.tutorialModal) return;
   elements.tutorialModal.classList.remove("is-hidden");
-  elements.tutorialComplete.focus();
+  elements.tutorialModal.removeAttribute("hidden");
+  elements.tutorialComplete?.focus();
+}
+
+function closeTutorial() {
+  elements.tutorialModal?.classList.add("is-hidden");
+  elements.tutorialModal?.setAttribute("hidden", "");
 }
 
 function completeTutorial() {
   localStorage.setItem(TUTORIAL_KEY, "true");
-  elements.tutorialModal.classList.add("is-hidden");
+  closeTutorial();
 }
 
 function applyTheme(theme) {
@@ -513,18 +532,21 @@ function getViewFromLocation() {
 function switchView(viewName, options = {}) {
   if (!VIEW_NAMES.has(viewName)) return;
   state.activeView = viewName;
-  const hasMatchingTab = [...elements.tabButtons].some((button) => button.dataset.view === viewName);
+  const tabButtons = [...document.querySelectorAll("[data-view]")];
+  const panels = [...document.querySelectorAll("[data-view-panel]")];
+  const hasMatchingTab = tabButtons.some((button) => button.dataset.view === viewName);
   if (hasMatchingTab) {
-    elements.tabButtons.forEach((button) => {
+    tabButtons.forEach((button) => {
       const isActive = button.dataset.view === viewName;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-selected", String(isActive));
       button.tabIndex = isActive ? 0 : -1;
     });
   }
-  elements.panels.forEach((panel) => {
-    panel.classList.toggle("is-active", panel.dataset.viewPanel === viewName);
-    panel.toggleAttribute("hidden", panel.dataset.viewPanel !== viewName);
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.viewPanel === viewName;
+    panel.classList.toggle("is-active", isActive);
+    panel.hidden = !isActive;
   });
   if (options.replaceHash !== false && location.hash !== `#/${viewName}`) {
     history.replaceState(null, "", `#/${viewName}`);
@@ -540,6 +562,7 @@ function handleTabKeydown(event) {
   };
   const tabs = [...elements.tabButtons];
   const currentIndex = tabs.indexOf(event.currentTarget);
+  if (currentIndex < 0) return;
 
   if (event.key === "Home" || event.key === "End") {
     event.preventDefault();
