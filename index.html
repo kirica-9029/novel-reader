@@ -141,29 +141,36 @@
             </div>
           </div>
           <ul class="site-tabs" id="catalogSiteTabs" aria-label="小説投稿サイト"></ul>
-          <label class="search-box">
-            <span id="catalogSearchLabel">小説家になろう検索</span>
-            <input id="catalogSearch" type="search" placeholder="キーワードを入力" />
-          </label>
-          <div class="narou-search-filters" id="catalogApiFilters" aria-label="小説家になろうAPI検索条件">
-            <label>
-              ジャンル
-              <select id="catalogGenre" aria-label="ジャンルで絞り込み"></select>
+          <div class="search-header sticky-search">
+            <label class="search-box">
+              <span id="catalogSearchLabel">小説家になろう検索</span>
+              <input id="catalogSearch" type="search" placeholder="キーワードを入力" />
             </label>
-            <label>
-              並び順
-              <select id="catalogOrder" aria-label="並び順を選択"></select>
-            </label>
-            <label>
-              連載/完結
-              <select id="catalogType" aria-label="連載または完結で絞り込み"></select>
-            </label>
-            <label>
-              取得件数
-              <select id="catalogLimit" aria-label="取得件数を選択"></select>
-            </label>
+            <button class="primary-button is-hidden" id="catalogExternalSearch" type="button" aria-label="選択中の外部サイトで検索">外部検索ページを開く</button>
           </div>
-          <button class="primary-button is-hidden" id="catalogExternalSearch" type="button" aria-label="選択中の外部サイトで検索">外部検索ページを開く</button>
+          <div class="accordion" id="searchFiltersAccordion">
+            <button class="accordion-toggle" id="searchFiltersToggle" type="button" aria-label="詳細検索条件を表示">詳細検索</button>
+            <div class="accordion-content is-hidden" id="searchFiltersContent">
+              <div class="narou-search-filters" id="catalogApiFilters" aria-label="小説家になろうAPI検索条件">
+                <label>
+                  ジャンル
+                  <select id="catalogGenre" aria-label="ジャンルで絞り込み"></select>
+                </label>
+                <label>
+                  並び順
+                  <select id="catalogOrder" aria-label="並び順を選択"></select>
+                </label>
+                <label>
+                  連載/完結
+                  <select id="catalogType" aria-label="連載または完結で絞り込み"></select>
+                </label>
+                <label>
+                  取得件数
+                  <select id="catalogLimit" aria-label="取得件数を選択"></select>
+                </label>
+              </div>
+            </div>
+          </div>
           <section class="catalog-result-panel" aria-labelledby="catalogResultsTitle">
             <div class="panel-title-row">
               <div>
@@ -280,10 +287,7 @@
                 <option value="total">累計</option>
               </select>
             </label>
-            <label id="rankingGenreField">
-              ジャンル
-              <select id="rankingGenre" aria-label="なろうランキングのジャンル"></select>
-            </label>
+            <div class="genre-tabs" id="rankingGenreTabs" aria-label="なろうランキングのジャンル"></div>
             <button class="primary-button" id="fetchRanking" type="button" aria-label="ランキングを取得">ランキング取得</button>
           </div>
         </form>

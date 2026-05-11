@@ -1254,6 +1254,86 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+.accordion {
+  margin: 16px 0;
+}
+
+.accordion-toggle {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.accordion-toggle:hover {
+  background: var(--surface-soft);
+}
+
+.accordion-content {
+  margin-top: 8px;
+}
+
+.accordion-content.is-hidden {
+  display: none;
+}
+
+.sticky-search {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  margin: -16px 0 16px;
+}
+
+.genre-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.genre-tab {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.genre-tab:hover {
+  background: var(--surface-soft);
+}
+
+.genre-tab.is-active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .genre-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .genre-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 .bookmarklet-box h3 {
   margin: 0;
   font-size: 1.05rem;
