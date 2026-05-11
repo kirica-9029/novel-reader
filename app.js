@@ -124,10 +124,14 @@ function cacheElements() {
     siteFilter: document.querySelector("#siteFilter"),
     novelList: document.querySelector("#novelList"),
     libraryEmpty: document.querySelector("#libraryEmpty"),
+    libraryEmptyRegister: document.querySelector("#libraryEmptyRegister"),
+    libraryEmptySearch: document.querySelector("#libraryEmptySearch"),
     bookmarkletStatus: document.querySelector("#bookmarkletStatus"),
     updatesList: document.querySelector("#updatesList"),
     readerPanel: document.querySelector("#readerPanel"),
     updatesEmpty: document.querySelector("#updatesEmpty"),
+    updatesEmptyRegister: document.querySelector("#updatesEmptyRegister"),
+    updatesEmptyCheck: document.querySelector("#updatesEmptyCheck"),
     updatesSummary: document.querySelector("#updatesSummary"),
     checkUpdates: document.querySelector("#checkUpdates"),
     updateCheckStatus: document.querySelector("#updateCheckStatus"),
@@ -138,6 +142,7 @@ function cacheElements() {
     rankingSearch: document.querySelector("#rankingSearch"),
     rankingList: document.querySelector("#rankingList"),
     rankingEmpty: document.querySelector("#rankingEmpty"),
+    rankingEmptyCheck: document.querySelector("#rankingEmptyCheck"),
     exportData: document.querySelector("#exportData"),
     importData: document.querySelector("#importData"),
     clearData: document.querySelector("#clearData"),
@@ -200,6 +205,11 @@ function bindNavigationEvents() {
   elements.heroRegisterUrl.addEventListener("click", focusUrlRegister);
   elements.heroSearchNarou.addEventListener("click", focusNarouSearch);
   elements.heroShowTutorial.addEventListener("click", openTutorial);
+  elements.libraryEmptyRegister.addEventListener("click", focusUrlRegister);
+  elements.libraryEmptySearch.addEventListener("click", focusNarouSearch);
+  elements.updatesEmptyRegister.addEventListener("click", focusUrlRegister);
+  elements.updatesEmptyCheck.addEventListener("click", focusUpdateCheck);
+  elements.rankingEmptyCheck.addEventListener("click", focusUpdateCheck);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
   });
@@ -446,6 +456,12 @@ function focusNarouSearch() {
   renderCatalogResults();
   scrollToPanel(elements.catalogSearchPanel);
   elements.catalogSearch.focus();
+}
+
+function focusUpdateCheck() {
+  switchView("updates");
+  scrollToPanel(elements.checkUpdates);
+  elements.checkUpdates.focus();
 }
 
 function scrollToPanel(panel) {

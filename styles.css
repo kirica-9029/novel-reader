@@ -871,6 +871,24 @@ textarea {
   text-align: center;
 }
 
+.empty-state p {
+  margin: 0;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.empty-actions .primary-button,
+.empty-actions .ghost-button {
+  display: inline-grid;
+  place-items: center;
+}
+
 .empty-state.is-loading {
   display: flex;
   align-items: center;

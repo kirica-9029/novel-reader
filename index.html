@@ -210,7 +210,11 @@
         </div>
 
         <div class="empty-state is-hidden" id="libraryEmpty">
-          作品を追加すると、ここに読書リストが並びます。
+          <p>まだ作品がありません。まずは作品URLを貼り付けるか、小説家になろう検索から本棚に追加してください。</p>
+          <div class="empty-actions">
+            <button class="primary-button" id="libraryEmptyRegister" type="button">作品URLを登録</button>
+            <button class="ghost-button" id="libraryEmptySearch" type="button">小説家になろうで検索</button>
+          </div>
         </div>
         <div class="novel-list" id="novelList" aria-live="polite"></div>
       </section>
@@ -228,7 +232,13 @@
         </div>
         <p class="check-status is-hidden" id="updateCheckStatus" aria-live="polite"></p>
         <div class="updates-summary" id="updatesSummary" aria-live="polite"></div>
-        <div class="empty-state is-hidden" id="updatesEmpty">未読更新はありません。</div>
+        <div class="empty-state is-hidden" id="updatesEmpty">
+          <p>未読更新はありません。必要に応じて本棚に作品を追加するか、更新確認を実行してください。</p>
+          <div class="empty-actions">
+            <button class="ghost-button" id="updatesEmptyRegister" type="button">作品URLを登録</button>
+            <button class="primary-button" id="updatesEmptyCheck" type="button">更新確認</button>
+          </div>
+        </div>
         <div class="updates-list" id="updatesList"></div>
       </section>
 
@@ -267,7 +277,12 @@
 
         <section class="ranking-results" aria-labelledby="rankingResultsTitle">
           <h3 id="rankingResultsTitle">巡回候補</h3>
-          <div class="empty-state is-hidden" id="rankingEmpty">更新中の本棚作品はありません。</div>
+          <div class="empty-state is-hidden" id="rankingEmpty">
+            <p>巡回候補はありません。更新確認後、未読更新がある作品がここに表示されます。</p>
+            <div class="empty-actions">
+              <button class="primary-button" id="rankingEmptyCheck" type="button">更新確認</button>
+            </div>
+          </div>
           <div class="ranking-list" id="rankingList" aria-live="polite"></div>
         </section>
       </section>
