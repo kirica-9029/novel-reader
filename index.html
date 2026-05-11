@@ -101,17 +101,17 @@
           <button class="ghost-button" id="heroShowTutorial" type="button">使い方を見る</button>
         </div>
       </div>
-      <button class="icon-button" id="themeToggle" type="button" aria-label="テーマ切替" title="テーマ切替">
-        <span id="themeIcon">☾</span>
+      <button class="icon-button" id="themeToggle" type="button" aria-label="ダークテーマに切り替える" title="テーマ切替">
+        <span id="themeIcon" aria-hidden="true">☾</span>
       </button>
     </header>
 
     <main class="app-shell">
-      <nav class="tab-nav" aria-label="メイン">
-        <button class="tab-button is-active" type="button" data-view="library" aria-label="本棚を表示">本棚</button>
-        <button class="tab-button" type="button" data-view="updates" aria-label="更新一覧を表示">更新</button>
-        <button class="tab-button" type="button" data-view="ranking" aria-label="巡回候補を表示">巡回</button>
-        <button class="tab-button" type="button" data-view="settings" aria-label="設定を表示">設定</button>
+      <nav class="tab-nav" role="tablist" aria-label="メイン">
+        <button class="tab-button is-active" id="libraryTab" type="button" role="tab" data-view="library" aria-controls="libraryView" aria-selected="true" aria-label="本棚を表示">本棚</button>
+        <button class="tab-button" id="updatesTab" type="button" role="tab" data-view="updates" aria-controls="updatesView" aria-selected="false" tabindex="-1" aria-label="更新一覧を表示">更新</button>
+        <button class="tab-button" id="rankingTab" type="button" role="tab" data-view="ranking" aria-controls="rankingView" aria-selected="false" tabindex="-1" aria-label="巡回候補を表示">巡回</button>
+        <button class="tab-button" id="settingsTab" type="button" role="tab" data-view="settings" aria-controls="settingsView" aria-selected="false" tabindex="-1" aria-label="設定を表示">設定</button>
       </nav>
 
       <aside class="ad-slot" aria-label="広告枠">広告枠</aside>
@@ -191,7 +191,7 @@
         </div>
       </section>
 
-      <section class="view is-active" id="libraryView" data-view-panel="library">
+      <section class="view is-active" id="libraryView" role="tabpanel" aria-labelledby="libraryTab" data-view-panel="library">
         <div class="section-head">
           <div>
             <h2>本棚</h2>
@@ -214,7 +214,7 @@
             <input id="catalogSearch" type="search" placeholder="キーワードを入力" />
           </label>
           <button class="primary-button is-hidden" id="catalogExternalSearch" type="button" aria-label="選択中の外部サイトで検索">外部サイトで検索</button>
-          <div class="empty-state is-hidden" id="catalogEmpty"></div>
+          <div class="empty-state is-hidden" id="catalogEmpty" role="status" aria-live="polite"></div>
           <div class="catalog-results" id="catalogResults" aria-live="polite"></div>
         </section>
 
@@ -285,7 +285,7 @@
         <div class="novel-list" id="novelList" aria-live="polite"></div>
       </section>
 
-      <section class="view" id="updatesView" data-view-panel="updates">
+      <section class="view" id="updatesView" role="tabpanel" aria-labelledby="updatesTab" data-view-panel="updates">
         <div class="section-head">
           <div>
             <h2>更新</h2>
@@ -308,11 +308,11 @@
         <div class="updates-list" id="updatesList"></div>
       </section>
 
-      <section class="view" id="readerView" data-view-panel="reader">
+      <section class="view" id="readerView" role="tabpanel" aria-label="リーダー" data-view-panel="reader">
         <div class="reader-panel" id="readerPanel"></div>
       </section>
 
-      <section class="view" id="rankingView" data-view-panel="ranking">
+      <section class="view" id="rankingView" role="tabpanel" aria-labelledby="rankingTab" data-view-panel="ranking">
         <div class="section-head">
           <div>
             <h2>更新優先リスト</h2>
@@ -353,7 +353,7 @@
         </section>
       </section>
 
-      <section class="view" id="settingsView" data-view-panel="settings">
+      <section class="view" id="settingsView" role="tabpanel" aria-labelledby="settingsTab" data-view-panel="settings">
         <div class="section-head">
           <div>
             <h2>設定</h2>
@@ -378,7 +378,8 @@
           <a class="primary-button bookmarklet-link" id="bookmarkletLink" href="#" aria-label="読了登録ブックマークレット">読了登録</a>
           <p class="muted">このリンクをブックマークバーへ登録して使います。</p>
         </section>
-        <textarea id="exportBox" class="export-box" rows="8" readonly placeholder="書き出したJSONがここに表示されます"></textarea>
+        <label class="sr-only" for="exportBox">書き出したJSON</label>
+        <textarea id="exportBox" class="export-box" rows="8" readonly aria-label="書き出したJSON" placeholder="書き出したJSONがここに表示されます"></textarea>
       </section>
 
       <section class="faq-section" aria-labelledby="faqTitle">

@@ -212,6 +212,7 @@ function bindNavigationEvents() {
   elements.rankingEmptyCheck.addEventListener("click", focusUpdateCheck);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
+    button.addEventListener("keydown", handleTabKeydown);
   });
   window.addEventListener("hashchange", () => {
     switchView(getViewFromLocation(), { replaceHash: false });
@@ -408,6 +409,7 @@ function completeTutorial() {
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   elements.themeIcon.textContent = theme === "dark" ? "☀" : "☾";
+  elements.themeToggle.setAttribute("aria-label", theme === "dark" ? "ライトテーマに切り替える" : "ダークテーマに切り替える");
   localStorage.setItem(THEME_KEY, theme);
 }
 
@@ -433,15 +435,48 @@ function getViewFromLocation() {
 function switchView(viewName, options = {}) {
   if (!VIEW_NAMES.has(viewName)) return;
   state.activeView = viewName;
-  elements.tabButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.view === viewName);
-  });
+  const hasMatchingTab = [...elements.tabButtons].some((button) => button.dataset.view === viewName);
+  if (hasMatchingTab) {
+    elements.tabButtons.forEach((button) => {
+      const isActive = button.dataset.view === viewName;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+      button.tabIndex = isActive ? 0 : -1;
+    });
+  }
   elements.panels.forEach((panel) => {
     panel.classList.toggle("is-active", panel.dataset.viewPanel === viewName);
+    panel.toggleAttribute("hidden", panel.dataset.viewPanel !== viewName);
   });
   if (options.replaceHash !== false && location.hash !== `#/${viewName}`) {
     history.replaceState(null, "", `#/${viewName}`);
   }
+}
+
+function handleTabKeydown(event) {
+  const keyActions = {
+    ArrowRight: 1,
+    ArrowDown: 1,
+    ArrowLeft: -1,
+    ArrowUp: -1,
+  };
+  const tabs = [...elements.tabButtons];
+  const currentIndex = tabs.indexOf(event.currentTarget);
+
+  if (event.key === "Home" || event.key === "End") {
+    event.preventDefault();
+    const nextTab = event.key === "Home" ? tabs[0] : tabs[tabs.length - 1];
+    switchView(nextTab.dataset.view);
+    nextTab.focus();
+    return;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(keyActions, event.key)) return;
+  event.preventDefault();
+  const nextIndex = (currentIndex + keyActions[event.key] + tabs.length) % tabs.length;
+  const nextTab = tabs[nextIndex];
+  switchView(nextTab.dataset.view);
+  nextTab.focus();
 }
 
 function focusUrlRegister() {
