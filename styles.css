@@ -67,6 +67,31 @@ textarea:focus-visible {
   margin: 0 auto;
 }
 
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-description {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+  overflow-wrap: anywhere;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.hero-actions .primary-button,
+.hero-actions .ghost-button {
+  display: inline-grid;
+  place-items: center;
+}
+
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);
@@ -957,6 +982,10 @@ textarea {
 @media (min-width: 720px) {
   .app-header {
     padding-top: 28px;
+  }
+
+  .hero-actions {
+    flex-wrap: nowrap;
   }
 
   h1 {

@@ -25,9 +25,15 @@
   </head>
   <body>
     <header class="app-header">
-      <div>
+      <div class="hero-copy">
         <p class="eyebrow">Web小説リーダー</p>
         <h1>Novel Shelf</h1>
+        <p class="hero-description">小説家になろう・カクヨム・ハーメルンなど複数のWeb小説をまとめて本棚管理。更新確認と読了位置管理をブラウザだけで行える軽量ツールです。</p>
+        <div class="hero-actions" aria-label="主要アクション">
+          <button class="primary-button" id="heroRegisterUrl" type="button">作品URLを登録</button>
+          <button class="ghost-button" id="heroSearchNarou" type="button">小説家になろうで検索</button>
+          <button class="ghost-button" id="heroShowTutorial" type="button">使い方を見る</button>
+        </div>
       </div>
       <button class="icon-button" id="themeToggle" type="button" aria-label="テーマ切替" title="テーマ切替">
         <span id="themeIcon">☾</span>
@@ -54,7 +60,7 @@
         </div>
         <p class="check-status is-hidden" id="bookmarkletStatus" aria-live="polite"></p>
 
-        <section class="catalog-search search-panel" aria-labelledby="catalogSearchTitle">
+        <section class="catalog-search search-panel" id="catalogSearchPanel" aria-labelledby="catalogSearchTitle">
           <div class="section-head compact-head">
             <div>
               <h3 id="catalogSearchTitle">外部サイトから作品を探す</h3>
@@ -71,7 +77,7 @@
           <div class="catalog-results" id="catalogResults" aria-live="polite"></div>
         </section>
 
-        <section class="manual-register" aria-labelledby="manualRegisterTitle">
+        <section class="manual-register" id="manualRegisterPanel" aria-labelledby="manualRegisterTitle">
           <div>
             <h3 id="manualRegisterTitle">URL・手入力で登録</h3>
             <p>API未対応サイトや検索で見つからない作品は、作品URLから本棚へ追加できます。</p>

@@ -93,10 +93,14 @@ function cacheElements() {
   Object.assign(elements, {
     themeToggle: document.querySelector("#themeToggle"),
     themeIcon: document.querySelector("#themeIcon"),
+    heroRegisterUrl: document.querySelector("#heroRegisterUrl"),
+    heroSearchNarou: document.querySelector("#heroSearchNarou"),
+    heroShowTutorial: document.querySelector("#heroShowTutorial"),
     tabButtons: document.querySelectorAll(".tab-button"),
     panels: document.querySelectorAll("[data-view-panel]"),
     openAddForm: document.querySelector("#openAddForm"),
     catalogSiteTabs: document.querySelector("#catalogSiteTabs"),
+    catalogSearchPanel: document.querySelector("#catalogSearchPanel"),
     catalogModeNote: document.querySelector("#catalogModeNote"),
     catalogSearchLabel: document.querySelector("#catalogSearchLabel"),
     catalogSearch: document.querySelector("#catalogSearch"),
@@ -104,6 +108,7 @@ function cacheElements() {
     catalogResults: document.querySelector("#catalogResults"),
     catalogEmpty: document.querySelector("#catalogEmpty"),
     quickUrl: document.querySelector("#quickUrl"),
+    manualRegisterPanel: document.querySelector("#manualRegisterPanel"),
     quickRegister: document.querySelector("#quickRegister"),
     novelForm: document.querySelector("#novelForm"),
     cancelEdit: document.querySelector("#cancelEdit"),
@@ -192,6 +197,9 @@ function bindEvents() {
 
 function bindNavigationEvents() {
   elements.themeToggle.addEventListener("click", toggleTheme);
+  elements.heroRegisterUrl.addEventListener("click", focusUrlRegister);
+  elements.heroSearchNarou.addEventListener("click", focusNarouSearch);
+  elements.heroShowTutorial.addEventListener("click", openTutorial);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
   });
@@ -374,6 +382,10 @@ function loadTheme() {
 
 function showTutorialIfNeeded() {
   if (localStorage.getItem(TUTORIAL_KEY) === "true") return;
+  openTutorial();
+}
+
+function openTutorial() {
   elements.tutorialModal.classList.remove("is-hidden");
   elements.tutorialComplete.focus();
 }
@@ -420,6 +432,24 @@ function switchView(viewName, options = {}) {
   if (options.replaceHash !== false && location.hash !== `#/${viewName}`) {
     history.replaceState(null, "", `#/${viewName}`);
   }
+}
+
+function focusUrlRegister() {
+  switchView("library");
+  scrollToPanel(elements.manualRegisterPanel);
+  elements.quickUrl.focus();
+}
+
+function focusNarouSearch() {
+  switchView("library");
+  state.catalogSite = DEFAULT_SITE;
+  renderCatalogResults();
+  scrollToPanel(elements.catalogSearchPanel);
+  elements.catalogSearch.focus();
+}
+
+function scrollToPanel(panel) {
+  panel?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function showForm(novel = null, options = {}) {
