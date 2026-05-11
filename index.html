@@ -59,8 +59,9 @@
     <main class="app-shell">
       <nav class="tab-nav" role="tablist" aria-label="メイン">
         <button class="tab-button is-active" id="libraryTab" type="button" role="tab" data-view="library" aria-controls="libraryView" aria-selected="true" aria-label="本棚を表示">本棚</button>
+        <button class="tab-button" id="searchTab" type="button" role="tab" data-view="search" aria-controls="searchView" aria-selected="false" tabindex="-1" aria-label="検索とURL登録を表示">検索</button>
         <button class="tab-button" id="updatesTab" type="button" role="tab" data-view="updates" aria-controls="updatesView" aria-selected="false" tabindex="-1" aria-label="更新一覧を表示">更新</button>
-        <button class="tab-button" id="rankingTab" type="button" role="tab" data-view="ranking" aria-controls="rankingView" aria-selected="false" tabindex="-1" aria-label="読む順リストを表示">読む順</button>
+        <button class="tab-button" id="rankingTab" type="button" role="tab" data-view="ranking" aria-controls="rankingView" aria-selected="false" tabindex="-1" aria-label="ランキングを表示">ランキング</button>
         <button class="tab-button" id="settingsTab" type="button" role="tab" data-view="settings" aria-controls="settingsView" aria-selected="false" tabindex="-1" aria-label="設定を表示">設定</button>
       </nav>
 
@@ -70,11 +71,66 @@
         <div class="section-head">
           <div>
             <h2>本棚</h2>
-            <p>登録済み作品を管理します。作品検索と検索結果は下の専用エリアに分けて表示します。</p>
+            <p>登録済み作品だけを表示します。作品の追加や検索は検索タブから行います。</p>
           </div>
-          <button class="ghost-button" id="openAddForm" type="button" aria-label="作品を手入力で登録">手入力</button>
+          <button class="ghost-button" id="openAddForm" type="button" aria-label="検索タブで作品を追加">作品を追加</button>
         </div>
         <p class="check-status is-hidden" id="bookmarkletStatus" aria-live="polite"></p>
+
+        <section class="library-workspace workspace-panel" aria-labelledby="libraryListTitle">
+          <div class="panel-title-row">
+            <div>
+              <p class="panel-kicker">登録済み作品</p>
+              <h3 id="libraryListTitle">本棚一覧</h3>
+            </div>
+            <p class="panel-note">検索結果とは別に、保存済みの作品だけを表示します。</p>
+          </div>
+          <div class="toolbar">
+            <label class="search-box">
+              本棚内検索
+              <input id="librarySearch" type="search" placeholder="作品名・サイト・メモ" />
+            </label>
+            <label>
+              サイト
+              <select id="siteFilter" aria-label="サイト別に絞り込み"></select>
+            </label>
+            <label>
+              状態
+              <select id="libraryStatusFilter" aria-label="状態で絞り込み">
+                <option value="all">すべて</option>
+                <option value="unread">未読あり</option>
+                <option value="updated">更新あり</option>
+                <option value="favorite">お気に入り</option>
+              </select>
+            </label>
+            <label>
+              並び替え
+              <select id="librarySort" aria-label="本棚の並び替え">
+                <option value="updated">更新日順</option>
+                <option value="registered">登録日順</option>
+                <option value="title">タイトル順</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="empty-state is-hidden" id="libraryEmpty">
+            <p id="libraryEmptyMessage">まだ作品がありません。まずは作品URLを貼り付けるか、小説家になろう検索から本棚に追加してください。</p>
+            <div class="empty-actions">
+              <button class="primary-button" id="libraryEmptyRegister" type="button">作品URLを登録</button>
+              <button class="ghost-button" id="libraryEmptySearch" type="button">小説家になろうで検索</button>
+            </div>
+          </div>
+          <div class="novel-list" id="novelList" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section class="view" id="searchView" role="tabpanel" aria-labelledby="searchTab" data-view-panel="search">
+        <div class="section-head">
+          <div>
+            <h2>検索</h2>
+            <p>作品検索、URL登録、手入力登録をまとめて行います。検索結果は本棚とは別枠で表示します。</p>
+          </div>
+        </div>
 
         <section class="catalog-search search-panel workspace-panel search-workspace" id="catalogSearchPanel" aria-labelledby="catalogSearchTitle">
           <div class="section-head compact-head">
@@ -152,59 +208,13 @@
             <button class="ghost-button" id="cancelEdit" type="button" aria-label="作品フォームを閉じる">キャンセル</button>
           </div>
         </form>
-
-        <section class="library-workspace workspace-panel" aria-labelledby="libraryListTitle">
-          <div class="panel-title-row">
-            <div>
-              <p class="panel-kicker">登録済み作品</p>
-              <h3 id="libraryListTitle">本棚一覧</h3>
-            </div>
-            <p class="panel-note">検索結果とは別に、保存済みの作品だけを表示します。</p>
-          </div>
-          <div class="toolbar">
-            <label class="search-box">
-              本棚内検索
-              <input id="librarySearch" type="search" placeholder="作品名・サイト・メモ" />
-            </label>
-            <label>
-              サイト
-              <select id="siteFilter" aria-label="サイト別に絞り込み"></select>
-            </label>
-            <label>
-              状態
-              <select id="libraryStatusFilter" aria-label="状態で絞り込み">
-                <option value="all">すべて</option>
-                <option value="unread">未読あり</option>
-                <option value="updated">更新あり</option>
-                <option value="favorite">お気に入り</option>
-              </select>
-            </label>
-            <label>
-              並び替え
-              <select id="librarySort" aria-label="本棚の並び替え">
-                <option value="updated">更新日順</option>
-                <option value="registered">登録日順</option>
-                <option value="title">タイトル順</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="empty-state is-hidden" id="libraryEmpty">
-            <p id="libraryEmptyMessage">まだ作品がありません。まずは作品URLを貼り付けるか、小説家になろう検索から本棚に追加してください。</p>
-            <div class="empty-actions">
-              <button class="primary-button" id="libraryEmptyRegister" type="button">作品URLを登録</button>
-              <button class="ghost-button" id="libraryEmptySearch" type="button">小説家になろうで検索</button>
-            </div>
-          </div>
-          <div class="novel-list" id="novelList" aria-live="polite"></div>
-        </section>
       </section>
 
       <section class="view" id="updatesView" role="tabpanel" aria-labelledby="updatesTab" data-view-panel="updates">
         <div class="section-head">
           <div>
             <h2>更新</h2>
-            <p>登録済み作品の最新話情報を確認します。外部サイトの新着取得やおすすめ巡回は行いません。</p>
+            <p>登録済み作品の最新話情報を確認します。外部サイトの新着取得やおすすめ取得は行いません。</p>
           </div>
           <div class="section-actions">
             <button class="primary-button" id="checkUpdates" type="button" aria-label="登録済み作品の最新話を確認">登録済み作品を更新確認</button>
@@ -230,39 +240,34 @@
       <section class="view" id="rankingView" role="tabpanel" aria-labelledby="rankingTab" data-view-panel="ranking">
         <div class="section-head">
           <div>
-            <h2>読む順リスト</h2>
-            <p>更新確認で未読が分かった登録済み作品だけを、読む順に並べ替えて開けます。</p>
+            <h2>ランキング</h2>
+            <p>小説家になろうは公式ランキングAPIで取得します。API非対応サイトはランキングページへのリンクを表示します。</p>
           </div>
         </div>
 
-        <form class="ranking-controls" id="rankingControls" role="search" aria-label="読む順リストの絞り込み">
+        <form class="ranking-controls" id="rankingControls" role="search" aria-label="ランキングの取得条件">
           <div class="ranking-filter-grid">
             <label>
               サイト
               <select id="rankingSite" aria-label="サイト"></select>
             </label>
             <label>
-              ソート
-              <select id="rankingSort" aria-label="読む順リストのソート">
-                <option value="updated">更新順</option>
-                <option value="unread">更新差分順</option>
-                <option value="stale">未閲覧順</option>
+              種別
+              <select id="rankingPeriod" aria-label="ランキング種別">
+                <option value="daily">日間</option>
+                <option value="weekly">週間</option>
+                <option value="monthly">月間</option>
+                <option value="quarterly">四半期</option>
               </select>
             </label>
-            <label class="ranking-keyword">
-              キーワード
-              <input id="rankingSearch" type="search" placeholder="作品名・サイト・メモ" />
-            </label>
+            <button class="primary-button" id="fetchRanking" type="button" aria-label="ランキングを取得">ランキング取得</button>
           </div>
         </form>
 
         <section class="ranking-results" aria-labelledby="rankingResultsTitle">
-          <h3 id="rankingResultsTitle">読む候補</h3>
+          <h3 id="rankingResultsTitle">ランキング結果</h3>
           <div class="empty-state is-hidden" id="rankingEmpty">
-            <p>読む候補はありません。更新確認後、未読更新がある登録済み作品がここに表示されます。</p>
-            <div class="empty-actions">
-              <button class="primary-button" id="rankingEmptyCheck" type="button">更新確認</button>
-            </div>
+            <p id="rankingEmptyMessage">ランキング取得ボタンを押してください。</p>
           </div>
           <div class="ranking-list" id="rankingList" aria-live="polite"></div>
         </section>

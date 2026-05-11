@@ -1,13 +1,14 @@
 const STORAGE_KEY = "novelShelf:v1";
 const THEME_KEY = "novelShelf:theme";
 const TUTORIAL_KEY = "novelShelf:tutorialCompleted";
-const VIEW_NAMES = new Set(["library", "updates", "ranking", "settings", "reader"]);
+const VIEW_NAMES = new Set(["library", "search", "updates", "ranking", "settings", "reader"]);
 const DEFAULT_SITE = "小説家になろう";
 const OTHER_SITE = "その他";
 const SITE_OPTIONS = ["小説家になろう", "カクヨム", "ハーメルン", "Arcadia", "暁", "ノベルアップ+", "pixiv小説", "ノクターン"];
 const SEARCH_SITE_OPTIONS = SITE_OPTIONS;
 const NOVEL_SITE_OPTIONS = [...SITE_OPTIONS, OTHER_SITE];
 const NAROU_API_URL = "https://api.syosetu.com/novelapi/api/";
+const NAROU_RANK_API_URL = "https://api.syosetu.com/rank/rankget/";
 const NAROU_JSONP_TIMEOUT = 12000;
 const NAROU_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 const CHECK_MODE_API = "api";
@@ -46,6 +47,16 @@ const EXTERNAL_SEARCH_BUILDERS = {
   pixiv小説: (keyword) => `https://www.pixiv.net/search/novels/${encodeURIComponent(keyword)}`,
   ノクターン: (keyword) => `https://noc.syosetu.com/search/search/?word=${encodeURIComponent(keyword)}`,
 };
+const RANKING_LINKS = {
+  "小説家になろう": "https://yomou.syosetu.com/rank/list/type/total_total/",
+  カクヨム: "https://kakuyomu.jp/rankings",
+  ハーメルン: "https://syosetu.org/?mode=rank",
+  Arcadia: "http://www.mai-net.net/",
+  暁: "https://www.akatsuki-novels.com/",
+  "ノベルアップ+": "https://novelup.plus/ranking",
+  pixiv小説: "https://www.pixiv.net/novel/ranking.php",
+  ノクターン: "https://noc.syosetu.com/rank/top/",
+};
 const SITE_URL_PATTERNS = [
   { site: "ノクターン", pattern: /noc\.syosetu\.com/i },
   { site: DEFAULT_SITE, pattern: /ncode\.syosetu\.com|syosetu\.com/i },
@@ -72,8 +83,11 @@ const state = {
   libraryStatusFilter: "all",
   librarySort: "updated",
   rankingSite: "all",
-  rankingSort: "updated",
-  rankingSearch: "",
+  rankingPeriod: "daily",
+  rankingResults: [],
+  rankingLoading: false,
+  rankingError: "",
+  rankingHasFetched: false,
   updateChecking: false,
   updateCheckMessage: "",
   updateCheckError: "",
@@ -151,11 +165,11 @@ function cacheElements() {
     markAllRead: document.querySelector("#markAllRead"),
     rankingControls: document.querySelector("#rankingControls"),
     rankingSite: document.querySelector("#rankingSite"),
-    rankingSort: document.querySelector("#rankingSort"),
-    rankingSearch: document.querySelector("#rankingSearch"),
+    rankingPeriod: document.querySelector("#rankingPeriod"),
+    fetchRanking: document.querySelector("#fetchRanking"),
     rankingList: document.querySelector("#rankingList"),
     rankingEmpty: document.querySelector("#rankingEmpty"),
-    rankingEmptyCheck: document.querySelector("#rankingEmptyCheck"),
+    rankingEmptyMessage: document.querySelector("#rankingEmptyMessage"),
     exportData: document.querySelector("#exportData"),
     importData: document.querySelector("#importData"),
     clearData: document.querySelector("#clearData"),
@@ -172,7 +186,7 @@ function populateStaticOptions() {
   populateCatalogSiteTabs();
   populateSelect(elements.novelSite, NOVEL_SITE_OPTIONS);
   populateSelect(elements.siteFilter, NOVEL_SITE_OPTIONS, { allLabel: "すべて" });
-  populateSelect(elements.rankingSite, SITE_OPTIONS, { allLabel: "全サイト" });
+  populateSelect(elements.rankingSite, SITE_OPTIONS);
   elements.bookmarkletLink.href = createBookmarkletHref();
 }
 
@@ -222,7 +236,6 @@ function bindNavigationEvents() {
   elements.libraryEmptySearch.addEventListener("click", focusNarouSearch);
   elements.updatesEmptyRegister.addEventListener("click", focusUrlRegister);
   elements.updatesEmptyCheck.addEventListener("click", focusUpdateCheck);
-  elements.rankingEmptyCheck.addEventListener("click", focusUpdateCheck);
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => switchView(button.dataset.view));
     button.addEventListener("keydown", handleTabKeydown);
@@ -233,7 +246,7 @@ function bindNavigationEvents() {
 }
 
 function bindLibraryEvents() {
-  elements.openAddForm.addEventListener("click", () => showForm());
+  elements.openAddForm.addEventListener("click", focusUrlRegister);
   elements.catalogSearch.addEventListener("input", (event) => {
     state.catalogSearch = event.target.value.trim();
     if (isApiSearchSite(state.catalogSite)) {
@@ -295,9 +308,21 @@ function bindRankingEvents() {
   elements.rankingControls.addEventListener("submit", (event) => {
     event.preventDefault();
   });
-  bindRankingControl(elements.rankingSite, "rankingSite", "change");
-  bindRankingControl(elements.rankingSort, "rankingSort", "change");
-  bindRankingControl(elements.rankingSearch, "rankingSearch", "input", { trim: true });
+  elements.rankingSite.addEventListener("change", (event) => {
+    state.rankingSite = event.target.value;
+    state.rankingResults = [];
+    state.rankingError = "";
+    state.rankingHasFetched = false;
+    renderRanking();
+  });
+  elements.rankingPeriod.addEventListener("change", (event) => {
+    state.rankingPeriod = event.target.value;
+    state.rankingResults = [];
+    state.rankingError = "";
+    state.rankingHasFetched = false;
+    renderRanking();
+  });
+  elements.fetchRanking.addEventListener("click", fetchSelectedRanking);
 }
 
 function bindSettingsEvents() {
@@ -313,14 +338,6 @@ function bindSettingsEvents() {
     if (event.key === "Escape" && !elements.tutorialModal?.classList.contains("is-hidden")) {
       completeTutorial();
     }
-  });
-}
-
-function bindRankingControl(element, stateKey, eventName, options = {}) {
-  element.addEventListener(eventName, (event) => {
-    const value = options.trim ? event.target.value.trim() : event.target.value;
-    state[stateKey] = value;
-    renderReadingQueue();
   });
 }
 
@@ -541,13 +558,13 @@ function handleTabKeydown(event) {
 }
 
 function focusUrlRegister() {
-  switchView("library");
+  switchView("search");
   scrollToPanel(elements.manualRegisterPanel);
   elements.quickUrl.focus();
 }
 
 function focusNarouSearch() {
-  switchView("library");
+  switchView("search");
   state.catalogSite = DEFAULT_SITE;
   renderSearchWorkspace();
   scrollToPanel(elements.catalogSearchPanel);
@@ -565,6 +582,7 @@ function scrollToPanel(panel) {
 }
 
 function showForm(novel = null, options = {}) {
+  switchView("search");
   elements.novelForm.classList.remove("is-hidden");
   elements.novelForm.classList.toggle("is-url-register", Boolean(options.urlRegister));
   setFormError("");
@@ -910,7 +928,7 @@ function render() {
   renderSearchWorkspace();
   renderLibrary();
   renderUpdates();
-  renderReadingQueue();
+  renderRanking();
   renderReader();
 }
 
@@ -1233,6 +1251,84 @@ function buildNarouApiUrl(apiParams, callbackName) {
     ...apiParams,
   });
   return `${NAROU_API_URL}?${searchParams.toString()}`;
+}
+
+async function fetchNarouRanking(period) {
+  const rankItems = await requestNarouRankApi({
+    rtype: getNarouRankingType(period),
+  });
+  const ncodes = rankItems.map((item) => item.ncode).filter(Boolean).slice(0, 20);
+  const novels = ncodes.length ? await fetchNarouNovelsByNcodes(ncodes) : [];
+  const novelByNcode = new Map(novels.map((novel) => [novel.ncode, novel]));
+  return rankItems.slice(0, 20).map((rankItem) => ({
+    ...rankItem,
+    novel: novelByNcode.get(rankItem.ncode) || null,
+  }));
+}
+
+async function requestNarouRankApi(params) {
+  const data = await requestNarouJsonp(NAROU_RANK_API_URL, params);
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((item) => ({
+      ncode: normalizeNcode(item?.ncode),
+      rank: toChapterNumber(item?.rank),
+      pt: toChapterNumber(item?.pt),
+    }))
+    .filter((item) => item.ncode);
+}
+
+function requestNarouJsonp(baseUrl, params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `novelShelfNarouRank_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const script = document.createElement("script");
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Narou ranking API JSONP timeout"));
+    }, NAROU_JSONP_TIMEOUT);
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Narou ranking API JSONP failed"));
+    };
+    const searchParams = new URLSearchParams({
+      out: "jsonp",
+      callback: callbackName,
+      ...params,
+    });
+    script.src = `${baseUrl}?${searchParams.toString()}`;
+    document.head.append(script);
+  });
+}
+
+function getNarouRankingType(period) {
+  const suffix = {
+    daily: "d",
+    weekly: "w",
+    monthly: "m",
+    quarterly: "q",
+  }[period] || "d";
+  return `${getRankingDateString()}-${suffix}`;
+}
+
+function getRankingDateString() {
+  const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  date.setUTCDate(date.getUTCDate() - 1);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
 }
 
 function parseNarouApiResults(data) {
@@ -2106,72 +2202,122 @@ function markAllRead() {
   render();
 }
 
-function renderReadingQueue() {
-  const hasSourceData = hasReadingQueueSourceData();
-  const items = getReadingQueueItems();
-  elements.rankingControls.classList.toggle("is-hidden", !hasSourceData);
-  elements.rankingEmpty.classList.toggle("is-hidden", items.length > 0);
-  elements.rankingList.innerHTML = items.map(renderReadingQueueItem).join("");
-  bindCardActions(elements.rankingList);
+function renderRanking() {
+  const isNarou = state.rankingSite === DEFAULT_SITE;
+  const hasVisibleRankingContent = !isNarou || state.rankingResults.length > 0;
+  elements.rankingPeriod.disabled = !isNarou || state.rankingLoading;
+  elements.fetchRanking.disabled = state.rankingLoading;
+  elements.fetchRanking.textContent = state.rankingLoading ? "取得中..." : (isNarou ? "ランキング取得" : "ランキングページを開く");
+  elements.rankingEmpty.classList.toggle("is-hidden", hasVisibleRankingContent);
+  elements.rankingEmptyMessage.innerHTML = getRankingEmptyMessage();
+  elements.rankingList.innerHTML = isNarou
+    ? state.rankingResults.map(renderNarouRankingItem).join("")
+    : renderExternalRankingLinks();
+  bindRankingActions();
 }
 
-function hasReadingQueueSourceData() {
-  return state.novels.some((novel) => getUnreadChapterCount(novel) > 0 || novel.unread);
+function getRankingEmptyMessage() {
+  if (state.rankingError) return escapeHtml(state.rankingError);
+  if (state.rankingLoading) return '<span class="loading-spinner" aria-hidden="true"></span><span>ランキングを取得しています...</span>';
+  if (state.rankingSite !== DEFAULT_SITE) return "API非対応サイトはランキングページへのリンクから確認できます。";
+  if (state.rankingHasFetched) return "ランキング結果はありませんでした。種別を変えて再取得してください。";
+  return "ランキング取得ボタンを押してください。";
 }
 
-function getReadingQueueItems() {
-  const keyword = normalizeText(state.rankingSearch);
+async function fetchSelectedRanking() {
+  if (state.rankingSite !== DEFAULT_SITE) {
+    window.open(getRankingUrl(state.rankingSite), "_blank", "noopener");
+    renderRanking();
+    return;
+  }
 
-  return state.novels
-    .filter((novel) => getUnreadChapterCount(novel) > 0 || novel.unread)
-    .filter((novel) => {
-      const searchableText = normalizeText(`${novel.title} ${novel.site} ${novel.memo}`);
-      const matchesSite = state.rankingSite === "all" || novel.site === state.rankingSite;
-      const matchesKeyword = !keyword || searchableText.includes(keyword);
-      return matchesSite && matchesKeyword;
-    })
-    .sort(sortRankingItems);
+  state.rankingLoading = true;
+  state.rankingError = "";
+  state.rankingHasFetched = true;
+  renderRanking();
+
+  try {
+    state.rankingResults = await fetchNarouRanking(state.rankingPeriod);
+  } catch (error) {
+    console.warn("Narou ranking API request failed", error);
+    state.rankingResults = [];
+    state.rankingError = "小説家になろうランキングAPIを取得できませんでした。時間を置いて再実行してください。";
+  } finally {
+    state.rankingLoading = false;
+    renderRanking();
+  }
 }
 
-function sortRankingItems(a, b) {
-  if (state.rankingSort === "unread") return getUnreadChapterCount(b) - getUnreadChapterCount(a) || compareByUpdateDate(a, b);
-  if (state.rankingSort === "stale") return getTimestamp(a.lastViewedAt) - getTimestamp(b.lastViewedAt) || compareByUpdateDate(a, b);
-  return compareByUpdateDate(a, b);
-}
-
-function renderReadingQueueItem(novel, index) {
-  const unreadCount = getUnreadChapterCount(novel);
-  const nextChapter = getNextReadableChapter(novel);
-  const continueButton = novel.url ? renderContinueLink(novel) : "";
-  const latestEpisode = novel.generalAllNo || novel.latestChapter || 0;
-
+function renderNarouRankingItem(item) {
+  const novel = item.novel;
+  const title = novel?.title || item.ncode;
+  const alreadyAdded = Boolean(novel && findDuplicateNovel(novel));
   return `
-    <article class="ranking-item" data-id="${novel.id}">
-      <div class="ranking-rank" aria-label="${index + 1}位">${index + 1}</div>
+    <article class="ranking-item" data-ranking-ncode="${escapeHtml(item.ncode)}">
+      <div class="ranking-rank" aria-label="${item.rank || ""}位">${item.rank || "-"}</div>
       <div class="ranking-body">
         <div class="card-top">
           <div>
-            <p class="ranking-source">登録済み作品の読む順</p>
-            <h3 class="novel-title">${escapeHtml(novel.title)}</h3>
+            <p class="ranking-source">小説家になろう ${escapeHtml(getRankingPeriodLabel(state.rankingPeriod))}ランキング</p>
+            <h3 class="novel-title">${escapeHtml(title)}</h3>
           </div>
-          <span class="new-label">未読</span>
+          <span class="badge unread">${escapeHtml(`${item.pt || 0}pt`)}</span>
         </div>
         <div class="meta-row">
-          <span class="badge">${escapeHtml(novel.site)}</span>
-          <span class="badge">更新 ${latestEpisode}話</span>
-          <span class="badge unread">未読: ${unreadCount}話</span>
-          <span class="badge">次 ${nextChapter}話</span>
+          <span class="badge">${escapeHtml(item.ncode)}</span>
+          ${novel?.author ? `<span class="badge">作者 ${escapeHtml(novel.author)}</span>` : ""}
+          ${novel?.latestChapter ? `<span class="badge">全 ${novel.latestChapter}話</span>` : ""}
         </div>
-        <p class="update-diff">${escapeHtml(getUpdateDiffText(novel, unreadCount))}</p>
-        <p class="update-time">最終更新：${escapeHtml(formatUpdatedAt(novel.generalLastup || novel.updatedAt))}</p>
-        ${novel.lastViewedAt ? `<p class="update-time">最終閲覧：${escapeHtml(formatUpdatedAt(novel.lastViewedAt))}</p>` : ""}
+        ${novel?.story ? `<p class="catalog-story">${escapeHtml(novel.story)}</p>` : ""}
         <div class="card-actions update-actions">
-          ${continueButton}
-          <button class="text-button" type="button" data-action="read" aria-label="${escapeHtml(`${novel.title}を最新まで読了にする`)}">最新まで読了</button>
+          <a class="text-button" href="${escapeHtml(novel?.url || `https://ncode.syosetu.com/${item.ncode.toLowerCase()}/`)}" target="_blank" rel="noopener">公式サイトで開く</a>
+          ${novel ? `<button class="text-button" type="button" data-ranking-add="${escapeHtml(item.ncode)}" ${alreadyAdded ? "disabled" : ""}>${alreadyAdded ? "登録済み" : "本棚に追加"}</button>` : ""}
         </div>
       </div>
     </article>
   `;
+}
+
+function renderExternalRankingLinks() {
+  return `
+    <article class="ranking-item">
+      <div class="ranking-rank" aria-hidden="true">↗</div>
+      <div class="ranking-body">
+        <h3 class="novel-title">${escapeHtml(state.rankingSite)}のランキング</h3>
+        <p class="update-diff">このサイトは公式ランキングAPI未対応のため、ランキングページを外部サイトで開きます。</p>
+        <div class="card-actions update-actions">
+          <a class="primary-button reader-official-link" href="${escapeHtml(getRankingUrl(state.rankingSite))}" target="_blank" rel="noopener">${escapeHtml(state.rankingSite)}ランキングを開く</a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function bindRankingActions() {
+  elements.rankingList.querySelectorAll("[data-ranking-add]").forEach((button) => {
+    button.addEventListener("click", () => addRankingNovelToLibrary(button.dataset.rankingAdd));
+  });
+}
+
+function addRankingNovelToLibrary(ncode) {
+  const item = state.rankingResults.find((rankingItem) => rankingItem.ncode === ncode);
+  if (!item?.novel || findDuplicateNovel(item.novel)) return;
+  state.novels.unshift(createNovelFromNarouItem(item.novel));
+  saveState();
+  render();
+}
+
+function getRankingUrl(site) {
+  return RANKING_LINKS[site] || SITE_HOME_URLS[site] || "https://www.google.com/search?q=web%E5%B0%8F%E8%AA%AC%20%E3%83%A9%E3%83%B3%E3%82%AD%E3%83%B3%E3%82%B0";
+}
+
+function getRankingPeriodLabel(period) {
+  return {
+    daily: "日間",
+    weekly: "週間",
+    monthly: "月間",
+    quarterly: "四半期",
+  }[period] || "日間";
 }
 
 function exportData() {
