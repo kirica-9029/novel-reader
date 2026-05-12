@@ -1,4 +1,4 @@
-const CACHE_NAME = "novel-shelf-static-v2";
+const CACHE_NAME = "novel-shelf-static-v3";
 const APP_SHELL = [
   "./",
   "./index.html",

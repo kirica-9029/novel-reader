@@ -178,6 +178,7 @@ const state = {
 const elements = {};
 let catalogSearchTimer = 0;
 let updatesSortable = null;
+let rankingRequestId = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
@@ -465,6 +466,7 @@ function bindRankingEvents() {
   });
   on(elements.rankingSite, "change", (event) => {
     state.rankingSite = event.target.value;
+    rankingRequestId += 1;
     state.rankingResults = [];
     state.rankingError = "";
     state.rankingHasFetched = false;
@@ -476,6 +478,7 @@ function bindRankingEvents() {
   });
   on(elements.rankingPeriod, "change", (event) => {
     state.rankingPeriod = event.target.value;
+    rankingRequestId += 1;
     state.rankingResults = [];
     state.rankingError = "";
     state.rankingHasFetched = false;
@@ -489,6 +492,7 @@ function bindRankingEvents() {
     const button = event.target.closest("[data-genre]");
     if (!button) return;
     state.rankingGenre = button.dataset.genre;
+    rankingRequestId += 1;
     state.rankingResults = [];
     state.rankingError = "";
     state.rankingHasFetched = false;
@@ -718,7 +722,7 @@ function switchView(viewName, options = {}) {
   if (options.replaceHash !== false && location.hash !== `#/${viewName}`) {
     history.replaceState(null, "", `#/${viewName}`);
   }
-  if (viewName === "ranking") maybeAutoFetchNarouRanking();
+  if (viewName === "ranking") renderRanking();
 }
 
 function maybeAutoFetchNarouRanking() {
@@ -1461,7 +1465,14 @@ function requestJsonpApi(baseUrl, params, logLabel) {
     const url = buildJsonpApiUrl(baseUrl, params, callbackName, logLabel);
     const timer = window.setTimeout(() => {
       cleanup();
-      reject(createApiError(`${logLabel} JSONP timeout`, { url }));
+      const error = createApiError(`${logLabel} JSONP timeout`, { url, status: "timeout", responseText: "" });
+      console.error(`${logLabel} request failed`, {
+        url,
+        status: error.status,
+        responseText: error.responseText,
+        error,
+      });
+      reject(error);
     }, NAROU_JSONP_TIMEOUT);
 
     function cleanup() {
@@ -1477,7 +1488,14 @@ function requestJsonpApi(baseUrl, params, logLabel) {
 
     script.onerror = () => {
       cleanup();
-      reject(createApiError(`${logLabel} JSONP failed`, { url, status: "script-error", responseText: "" }));
+      const error = createApiError(`${logLabel} JSONP failed`, { url, status: "script-error", responseText: "" });
+      console.error(`${logLabel} request failed`, {
+        url,
+        status: error.status,
+        responseText: error.responseText,
+        error,
+      });
+      reject(error);
     };
     script.src = url;
     document.head.append(script);
@@ -1507,12 +1525,12 @@ function createApiError(message, details = {}) {
   return error;
 }
 
-async function fetchNarouRanking(period) {
+async function fetchNarouRanking(period, genre = state.rankingGenre) {
   const rankingItems = await fetchNarouRankingItems(period);
   if (rankingItems.length === 0) return [];
 
   const novelsByNcode = await fetchNarouNovelsForRanking(rankingItems.map((item) => item.ncode));
-  const genreConfig = getNarouRankingGenreConfig(state.rankingGenre);
+  const genreConfig = getNarouRankingGenreConfig(genre);
   return rankingItems
     .map((item) => ({
       ...item,
@@ -2532,25 +2550,33 @@ function getRankingEmptyMessage() {
 
 async function fetchSelectedRanking() {
   if (state.rankingSite === "all") {
+    rankingRequestId += 1;
     state.rankingError = "ランキングを見るサイトを選択してください。";
     renderRanking();
     return;
   }
 
   if (state.rankingSite !== DEFAULT_SITE) {
+    rankingRequestId += 1;
     window.open(getRankingUrl(state.rankingSite, state.rankingPeriod), "_blank", "noopener");
     renderRanking();
     return;
   }
 
+  const requestId = ++rankingRequestId;
+  const period = state.rankingPeriod;
+  const genre = state.rankingGenre;
   state.rankingLoading = true;
   state.rankingError = "";
   state.rankingHasFetched = true;
   renderRanking();
 
   try {
-    state.rankingResults = await fetchNarouRanking(state.rankingPeriod);
+    const results = await fetchNarouRanking(period, genre);
+    if (requestId !== rankingRequestId) return;
+    state.rankingResults = results;
   } catch (error) {
+    if (requestId !== rankingRequestId) return;
     console.error("Narou ranking API request failed", {
       url: error.url || "",
       status: error.status || "unknown",
@@ -2560,8 +2586,10 @@ async function fetchSelectedRanking() {
     state.rankingResults = [];
     state.rankingError = "小説家になろう公式APIを取得できませんでした。時間を置いて再実行してください。";
   } finally {
-    state.rankingLoading = false;
-    renderRanking();
+    if (requestId === rankingRequestId) {
+      state.rankingLoading = false;
+      renderRanking();
+    }
   }
 }
 
